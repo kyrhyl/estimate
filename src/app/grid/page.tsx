@@ -1,67 +1,207 @@
 "use client";
 import { useState } from "react";
-// ...existing code...
+
+// BeamSpec type definition
+type BeamSpec = {
+  id: string;
+  width: number;
+  depth: number;
+  topBarSize: number | null;
+  topBarQty: number;
+  webBarSize: number | null;
+  webBarQty: number;
+  bottomBarSize: number | null;
+  bottomBarQty: number;
+  stirrupSize: number | null;
+  stirrupQty: number;
+};
+
+// Multi-floor data structures
+type GridSystem = {
+  numCols: number;
+  numRows: number;
+  cols: Array<{ label: string; position: number }>;
+  rows: Array<{ label: string; position: number }>;
+};
+
+type Floor = {
+  id: string;
+  level: number;
+  name: string;
+  gridSystem: GridSystem;
+  beamSpecs: BeamSpec[];
+  colBeamIds: string[];
+  rowBeamIds: string[];
+  inheritsGrid: boolean;
+};
+
+type Building = {
+  id: string;
+  name: string;
+  floors: Floor[];
+};
 
 export default function GridPage() {
-    // Handler to update number of columns
-    const handleNumColsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = Math.max(1, Number(e.target.value));
-      setNumCols(value);
-      // Adjust columns array
-      setCols(prev => {
-        const arr = [...prev];
-        while (arr.length < value) {
-          arr.push({ label: String(arr.length + 1), position: arr.length * 5 });
-        }
-        return arr.slice(0, value);
-      });
-      // Adjust colBeamIds
-      setColBeamIds(Array(numRows * (value - 1)).fill(""));
+  // Multi-floor state management
+  const [building, setBuilding] = useState<Building>({
+    id: "building-1",
+    name: "Building 1",
+    floors: [
+      {
+        id: "floor-1",
+        level: 1,
+        name: "Ground Floor",
+        gridSystem: {
+          numCols: 4,
+          numRows: 3,
+          cols: [
+            { label: "1", position: 0 },
+            { label: "2", position: 5 },
+            { label: "3", position: 10 },
+            { label: "4", position: 15 },
+          ],
+          rows: [
+            { label: "A", position: 0 },
+            { label: "B", position: 4 },
+            { label: "C", position: 8 },
+          ],
+        },
+        beamSpecs: [
+          { id: "B1", width: 0.3, depth: 0.5, topBarSize: 12, topBarQty: 2, webBarSize: 8, webBarQty: 2, bottomBarSize: 12, bottomBarQty: 2, stirrupSize: 8, stirrupQty: 6 },
+          { id: "B2", width: 0.3, depth: 0.6, topBarSize: 12, topBarQty: 2, webBarSize: 8, webBarQty: 2, bottomBarSize: 12, bottomBarQty: 2, stirrupSize: 8, stirrupQty: 8 },
+          { id: "B3", width: 0.25, depth: 0.4, topBarSize: 10, topBarQty: 2, webBarSize: 8, webBarQty: 2, bottomBarSize: 10, bottomBarQty: 2, stirrupSize: 8, stirrupQty: 6 },
+        ],
+        colBeamIds: Array(3 * 3).fill(""),
+        rowBeamIds: Array(4 * 2).fill(""),
+        inheritsGrid: false,
+      },
+    ],
+  });
+
+  const [currentFloorId, setCurrentFloorId] = useState("floor-1");
+  const [activeTab, setActiveTab] = useState<'beams' | 'grid'>('beams');
+
+  // Current floor computed values
+  const currentFloor = building.floors.find(f => f.id === currentFloorId) || building.floors[0];
+  const numCols = currentFloor.gridSystem.numCols;
+  const numRows = currentFloor.gridSystem.numRows;
+  const cols = currentFloor.gridSystem.cols;
+  const rows = currentFloor.gridSystem.rows;
+  const beamSpecs = currentFloor.beamSpecs;
+  const colBeamIds = currentFloor.colBeamIds;
+  const rowBeamIds = currentFloor.rowBeamIds;
+
+  // Floor management functions
+  const addFloor = () => {
+    const newFloorLevel = building.floors.length + 1;
+    const newFloor: Floor = {
+      id: `floor-${newFloorLevel}`,
+      level: newFloorLevel,
+      name: `Floor ${newFloorLevel}`,
+      gridSystem: {
+        ...building.floors[0].gridSystem, // Inherit from ground floor
+      },
+      beamSpecs: [...building.floors[0].beamSpecs], // Copy beam specs
+      colBeamIds: Array(building.floors[0].gridSystem.numRows * (building.floors[0].gridSystem.numCols - 1)).fill(""),
+      rowBeamIds: Array(building.floors[0].gridSystem.numCols * (building.floors[0].gridSystem.numRows - 1)).fill(""),
+      inheritsGrid: true,
     };
 
-    // Handler to update number of rows
-    const handleNumRowsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = Math.max(1, Number(e.target.value));
-      setNumRows(value);
-      // Adjust rows array
-      setRows(prev => {
-        const arr = [...prev];
-        while (arr.length < value) {
-          arr.push({ label: String.fromCharCode(65 + arr.length), position: arr.length * 4 });
-        }
-        return arr.slice(0, value);
-      });
-      // Adjust rowBeamIds
-      setRowBeamIds(Array(numCols * (value - 1)).fill(""));
-    };
-  const [numCols, setNumCols] = useState(4);
-     const [numRows, setNumRows] = useState(3);
-  const [cols, setCols] = useState([
-    { label: "1", position: 0 },
-    { label: "2", position: 5 },
-    { label: "3", position: 10 },
-  ]);
-  const [rows, setRows] = useState([
-       { label: "A", position: 0 },
-       { label: "B", position: 4 },
-       { label: "C", position: 8 },
-  ]);
-  const [selectedCoord, setSelectedCoord] = useState("");
-  // User-defined Beam IDs and their properties
-  type BeamSpec = {
-    id: string;
-    width: number;
-    depth: number;
-    topBarSize: number | null;
-    topBarQty: number;
-    webBarSize: number | null;
-    webBarQty: number;
-    bottomBarSize: number | null;
-    bottomBarQty: number;
-    stirrupSize: number | null;
-    stirrupQty: number;
+    setBuilding(prev => ({
+      ...prev,
+      floors: [...prev.floors, newFloor],
+    }));
+    setCurrentFloorId(newFloor.id);
   };
 
+  const deleteFloor = (floorId: string) => {
+    if (building.floors.length <= 1) return; // Don't allow deleting the last floor
+    
+    setBuilding(prev => ({
+      ...prev,
+      floors: prev.floors.filter(f => f.id !== floorId),
+    }));
+    
+    if (currentFloorId === floorId) {
+      setCurrentFloorId(building.floors[0].id);
+    }
+  };
+
+  const updateCurrentFloor = (updates: Partial<Floor>) => {
+    setBuilding(prev => ({
+      ...prev,
+      floors: prev.floors.map(f => 
+        f.id === currentFloorId ? { ...f, ...updates } : f
+      ),
+    }));
+  };
+
+  // Updated grid handlers to work with current floor
+  const handleNumColsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Math.max(1, Number(e.target.value));
+    const updatedCols = [...currentFloor.gridSystem.cols];
+    while (updatedCols.length < value) {
+      updatedCols.push({ label: String(updatedCols.length + 1), position: updatedCols.length * 5 });
+    }
+    const finalCols = updatedCols.slice(0, value);
+    
+    updateCurrentFloor({
+      gridSystem: {
+        ...currentFloor.gridSystem,
+        numCols: value,
+        cols: finalCols,
+      },
+      colBeamIds: Array(numRows * (value - 1)).fill(""),
+    });
+  };
+
+  const handleNumRowsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Math.max(1, Number(e.target.value));
+    const updatedRows = [...currentFloor.gridSystem.rows];
+    while (updatedRows.length < value) {
+      updatedRows.push({ label: String.fromCharCode(65 + updatedRows.length), position: updatedRows.length * 4 });
+    }
+    const finalRows = updatedRows.slice(0, value);
+    
+    updateCurrentFloor({
+      gridSystem: {
+        ...currentFloor.gridSystem,
+        numRows: value,
+        rows: finalRows,
+      },
+      rowBeamIds: Array(numCols * (value - 1)).fill(""),
+    });
+  };
+
+  const setBeamSpecs = (newSpecs: BeamSpec[]) => {
+    updateCurrentFloor({ beamSpecs: newSpecs });
+  };
+
+  const setColBeamIds = (newIds: string[]) => {
+    updateCurrentFloor({ colBeamIds: newIds });
+  };
+
+  const setRowBeamIds = (newIds: string[]) => {
+    updateCurrentFloor({ rowBeamIds: newIds });
+  };
+
+  const setCols = (newCols: Array<{ label: string; position: number }>) => {
+    updateCurrentFloor({
+      gridSystem: {
+        ...currentFloor.gridSystem,
+        cols: newCols,
+      },
+    });
+  };
+
+  const setRows = (newRows: Array<{ label: string; position: number }>) => {
+    updateCurrentFloor({
+      gridSystem: {
+        ...currentFloor.gridSystem,
+        rows: newRows,
+      },
+    });
+  };
   const BAR_SIZES = [8, 10, 12, 16, 20, 25, 32];
   
   // Standard reinforcement bar weights (kg/m) based on steel density 7850 kg/m³
@@ -76,7 +216,7 @@ export default function GridPage() {
   };
 
   // Calculate reinforcement weights per meter for a beam
-  const calculateReinforcementWeights = (beam: BeamSpec) => {
+  const calculateReinforcementWeights = (beam: BeamSpec): { grade40Weight: number; grade60Weight: number; totalWeight: number } => {
     let grade40Weight = 0; // < 16mm
     let grade60Weight = 0; // >= 16mm
     
@@ -124,51 +264,41 @@ export default function GridPage() {
     
     return { grade40Weight, grade60Weight, totalWeight: grade40Weight + grade60Weight };
   };
-  const [activeTab, setActiveTab] = useState<'beams' | 'grid'>('beams');
-  const [beamSpecs, setBeamSpecs] = useState<BeamSpec[]>([
-    { id: "B1", width: 0.3, depth: 0.5, topBarSize: 12, topBarQty: 2, webBarSize: 8, webBarQty: 2, bottomBarSize: 12, bottomBarQty: 2, stirrupSize: 8, stirrupQty: 6 },
-    { id: "B2", width: 0.3, depth: 0.6, topBarSize: 12, topBarQty: 2, webBarSize: 8, webBarQty: 2, bottomBarSize: 12, bottomBarQty: 2, stirrupSize: 8, stirrupQty: 8 },
-    { id: "B3", width: 0.25, depth: 0.4, topBarSize: 10, topBarQty: 2, webBarSize: 8, webBarQty: 2, bottomBarSize: 10, bottomBarQty: 2, stirrupSize: 8, stirrupQty: 6 },
-  ]);
-  // Selected Beam IDs for each length
-  const [colBeamIds, setColBeamIds] = useState(Array(rows.length * (cols.length - 1)).fill(""));
-  const [rowBeamIds, setRowBeamIds] = useState(Array(cols.length * (rows.length - 1)).fill(""));
 
+  // Additional UI state
+  const [selectedCoord, setSelectedCoord] = useState("");
+
+  // Grid modification handlers
   const handleColChange = (idx: number, field: "label" | "position", value: string | number) => {
     const updated = [...cols];
     (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
     setCols(updated);
     // Ensure colBeamIds and rowBeamIds stay in sync with grid size
-    setColBeamIds(prev => {
-      const needed = numRows * (updated.length - 1);
-      const arr = [...prev];
-      while (arr.length < needed) arr.push("");
-      return arr.slice(0, needed);
-    });
-    setRowBeamIds(prev => {
-      const needed = updated.length * (numRows - 1);
-      const arr = [...prev];
-      while (arr.length < needed) arr.push("");
-      return arr.slice(0, needed);
-    });
+    const newColBeamIds = [...colBeamIds];
+    const needed = numRows * (updated.length - 1);
+    while (newColBeamIds.length < needed) newColBeamIds.push("");
+    setColBeamIds(newColBeamIds.slice(0, needed));
+    
+    const newRowBeamIds = [...rowBeamIds];
+    const neededRows = updated.length * (numRows - 1);
+    while (newRowBeamIds.length < neededRows) newRowBeamIds.push("");
+    setRowBeamIds(newRowBeamIds.slice(0, neededRows));
   };
+
   const handleRowChange = (idx: number, field: "label" | "position", value: string | number) => {
     const updated = [...rows];
     (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
     setRows(updated);
     // Ensure colBeamIds and rowBeamIds stay in sync with grid size
-    setColBeamIds(prev => {
-      const needed = updated.length * (cols.length - 1);
-      const arr = [...prev];
-      while (arr.length < needed) arr.push("");
-      return arr.slice(0, needed);
-    });
-    setRowBeamIds(prev => {
-      const needed = cols.length * (updated.length - 1);
-      const arr = [...prev];
-      while (arr.length < needed) arr.push("");
-      return arr.slice(0, needed);
-    });
+    const newColBeamIds = [...colBeamIds];
+    const needed = updated.length * (numCols - 1);
+    while (newColBeamIds.length < needed) newColBeamIds.push("");
+    setColBeamIds(newColBeamIds.slice(0, needed));
+    
+    const newRowBeamIds = [...rowBeamIds];
+    const neededRows = numCols * (updated.length - 1);
+    while (newRowBeamIds.length < neededRows) newRowBeamIds.push("");
+    setRowBeamIds(newRowBeamIds.slice(0, neededRows));
   };
 
   // Generate all grid coordinates
@@ -289,6 +419,53 @@ export default function GridPage() {
             >
               Grid System & Assignment
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Floor Navigation */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <h2 className="text-lg font-semibold text-gray-900">{building.name}</h2>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Floor:</span>
+                <select
+                  value={currentFloorId}
+                  onChange={(e) => setCurrentFloorId(e.target.value)}
+                  className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {building.floors.map((floor) => (
+                    <option key={floor.id} value={floor.id}>
+                      {floor.name} (Level {floor.level})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={addFloor}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Floor
+              </button>
+              {building.floors.length > 1 && (
+                <button
+                  onClick={() => deleteFloor(currentFloorId)}
+                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete Floor
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
