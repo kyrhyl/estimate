@@ -41,7 +41,31 @@ type Building = {
   floors: Floor[];
 };
 
+type BuildingSummary = {
+  totalConcreteVolume: number;
+  totalGrade40Steel: number;
+  totalGrade60Steel: number;
+  floorBreakdown: {
+    floorId: string;
+    floorName: string;
+    concreteVolume: number;
+    grade40Steel: number;
+    grade60Steel: number;
+    beamBreakdown: {
+      beamId: string;
+      segments: string[];
+      totalLength: number;
+      concreteVolume: number;
+      grade40Steel: number;
+      grade60Steel: number;
+    }[];
+  }[];
+};
+
 export default function GridPage() {
+  const [currentFloorId, setCurrentFloorId] = useState("floor-1");
+  const [activeTab, setActiveTab] = useState<'beams' | 'grid' | 'summary'>('beams');
+
   // Multi-floor state management
   const [building, setBuilding] = useState<Building>({
     id: "building-1",
@@ -78,11 +102,8 @@ export default function GridPage() {
     ],
   });
 
-  const [currentFloorId, setCurrentFloorId] = useState("floor-1");
-  const [activeTab, setActiveTab] = useState<'beams' | 'grid'>('beams');
-
   // Current floor computed values
-  const currentFloor = building.floors.find(f => f.id === currentFloorId) || building.floors[0];
+  const currentFloor = building.floors.find((f: Floor) => f.id === currentFloorId) || building.floors[0];
   const numCols = currentFloor.gridSystem.numCols;
   const numRows = currentFloor.gridSystem.numRows;
   const cols = currentFloor.gridSystem.cols;
@@ -107,7 +128,7 @@ export default function GridPage() {
       inheritsGrid: true,
     };
 
-    setBuilding(prev => ({
+    setBuilding((prev: Building) => ({
       ...prev,
       floors: [...prev.floors, newFloor],
     }));
@@ -117,9 +138,9 @@ export default function GridPage() {
   const deleteFloor = (floorId: string) => {
     if (building.floors.length <= 1) return; // Don't allow deleting the last floor
     
-    setBuilding(prev => ({
+    setBuilding((prev: Building) => ({
       ...prev,
-      floors: prev.floors.filter(f => f.id !== floorId),
+      floors: prev.floors.filter((f: Floor) => f.id !== floorId),
     }));
     
     if (currentFloorId === floorId) {
@@ -128,9 +149,9 @@ export default function GridPage() {
   };
 
   const updateCurrentFloor = (updates: Partial<Floor>) => {
-    setBuilding(prev => ({
+    setBuilding((prev: Building) => ({
       ...prev,
-      floors: prev.floors.map(f => 
+      floors: prev.floors.map((f: Floor) => 
         f.id === currentFloorId ? { ...f, ...updates } : f
       ),
     }));
@@ -263,6 +284,108 @@ export default function GridPage() {
     }
     
     return { grade40Weight, grade60Weight, totalWeight: grade40Weight + grade60Weight };
+  };
+
+  // Calculate building summary across all floors
+  const calculateBuildingSummary = (): BuildingSummary => {
+    let totalConcreteVolume = 0;
+    let totalGrade40Steel = 0;
+    let totalGrade60Steel = 0;
+    const floorBreakdown: BuildingSummary['floorBreakdown'] = [];
+
+    building.floors.forEach(floor => {
+      // Calculate beam summary for this floor
+      const beamSummaryMap = new Map();
+      
+      // Column lengths (X direction)
+      const colLengths = [];
+      for (let r = 0; r < floor.gridSystem.numRows; r++) {
+        for (let c = 0; c < floor.gridSystem.numCols - 1; c++) {
+          const from = floor.gridSystem.cols[c];
+          const to = floor.gridSystem.cols[c + 1];
+          const length = Math.abs(to.position - from.position);
+          const beamIdIndex = r * (floor.gridSystem.numCols - 1) + c;
+          const beamId = floor.colBeamIds[beamIdIndex];
+          if (beamId) {
+            colLengths.push({ beamId, length, segment: `${floor.gridSystem.rows[r].label}${from.label}-${floor.gridSystem.rows[r].label}${to.label}` });
+          }
+        }
+      }
+      
+      // Row lengths (Y direction)
+      const rowLengths = [];
+      for (let c = 0; c < floor.gridSystem.numCols; c++) {
+        for (let r = 0; r < floor.gridSystem.numRows - 1; r++) {
+          const from = floor.gridSystem.rows[r];
+          const to = floor.gridSystem.rows[r + 1];
+          const length = Math.abs(to.position - from.position);
+          const beamIdIndex = c * (floor.gridSystem.numRows - 1) + r;
+          const beamId = floor.rowBeamIds[beamIdIndex];
+          if (beamId) {
+            rowLengths.push({ beamId, length, segment: `${from.label}${floor.gridSystem.cols[c].label}-${to.label}${floor.gridSystem.cols[c].label}` });
+          }
+        }
+      }
+      
+      // Aggregate beam data
+      [...colLengths, ...rowLengths].forEach(({ beamId, length, segment }) => {
+        if (!beamSummaryMap.has(beamId)) {
+          beamSummaryMap.set(beamId, { segments: [], totalLength: 0 });
+        }
+        const summary = beamSummaryMap.get(beamId);
+        summary.segments.push(segment);
+        summary.totalLength += length;
+      });
+      
+      // Calculate floor totals
+      let floorConcreteVolume = 0;
+      let floorGrade40Steel = 0;
+      let floorGrade60Steel = 0;
+      const beamBreakdown: BuildingSummary['floorBreakdown'][0]['beamBreakdown'] = [];
+      
+      beamSummaryMap.forEach((summary, beamId) => {
+        const beam = floor.beamSpecs.find(b => b.id === beamId);
+        if (beam) {
+          const beamConcreteVolume = summary.totalLength * beam.width * beam.depth;
+          const weights = calculateReinforcementWeights(beam);
+          const beamGrade40Steel = weights.grade40Weight * summary.totalLength;
+          const beamGrade60Steel = weights.grade60Weight * summary.totalLength;
+          
+          floorConcreteVolume += beamConcreteVolume;
+          floorGrade40Steel += beamGrade40Steel;
+          floorGrade60Steel += beamGrade60Steel;
+          
+          beamBreakdown.push({
+            beamId,
+            segments: summary.segments,
+            totalLength: summary.totalLength,
+            concreteVolume: beamConcreteVolume,
+            grade40Steel: beamGrade40Steel,
+            grade60Steel: beamGrade60Steel,
+          });
+        }
+      });
+      
+      totalConcreteVolume += floorConcreteVolume;
+      totalGrade40Steel += floorGrade40Steel;
+      totalGrade60Steel += floorGrade60Steel;
+      
+      floorBreakdown.push({
+        floorId: floor.id,
+        floorName: floor.name,
+        concreteVolume: floorConcreteVolume,
+        grade40Steel: floorGrade40Steel,
+        grade60Steel: floorGrade60Steel,
+        beamBreakdown,
+      });
+    });
+    
+    return {
+      totalConcreteVolume,
+      totalGrade40Steel,
+      totalGrade60Steel,
+      floorBreakdown,
+    };
   };
 
   // Additional UI state
@@ -398,7 +521,7 @@ export default function GridPage() {
       {/* Tab Navigation */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex space-x-8">
+          <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab('beams')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -416,10 +539,19 @@ export default function GridPage() {
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
-            >
-              Grid System & Assignment
+            >              Grid System & Assignment
             </button>
-          </div>
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'summary'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Building Summary
+            </button>
+          </nav>
         </div>
       </div>
 
@@ -916,6 +1048,115 @@ export default function GridPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'summary' && (
+          <div>
+            {/* Building Summary Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Building Summary</h2>
+              <p className="text-gray-600">Comprehensive material overview for {building.name}</p>
+            </div>
+
+            {(() => {
+              const summary = calculateBuildingSummary();
+              
+              return (
+                <div className="space-y-8">
+                  {/* Building Totals Card */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 overflow-hidden">
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                      <h3 className="text-xl font-semibold text-white">Building Totals</h3>
+                    </div>
+                    <div className="p-6">
+                      <div className="grid grid-cols-3 gap-6">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-gray-900 mb-1">
+                            {summary.totalConcreteVolume.toFixed(2)}
+                          </div>
+                          <div className="text-sm text-gray-600">Concrete Volume (m³)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-orange-600 mb-1">
+                            {summary.totalGrade40Steel.toFixed(0)}
+                          </div>
+                          <div className="text-sm text-gray-600">Grade 40 Steel (kg)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-red-600 mb-1">
+                            {summary.totalGrade60Steel.toFixed(0)}
+                          </div>
+                          <div className="text-sm text-gray-600">Grade 60 Steel (kg)</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floor-by-Floor Breakdown */}
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-semibold text-gray-900">Floor Breakdown</h3>
+                    {summary.floorBreakdown.map((floor) => (
+                      <div key={floor.floorId} className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                        {/* Floor Header */}
+                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-lg font-semibold text-gray-900">{floor.floorName}</h4>
+                            <div className="flex space-x-6 text-sm">
+                              <span className="text-gray-600">
+                                <strong>Concrete:</strong> {floor.concreteVolume.toFixed(2)} m³
+                              </span>
+                              <span className="text-orange-600">
+                                <strong>Grade 40:</strong> {floor.grade40Steel.toFixed(0)} kg
+                              </span>
+                              <span className="text-red-600">
+                                <strong>Grade 60:</strong> {floor.grade60Steel.toFixed(0)} kg
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Beam Details */}
+                        <div className="p-6">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full">
+                              <thead>
+                                <tr className="border-b border-gray-200">
+                                  <th className="text-left py-3 px-2 font-medium text-gray-900">Beam ID</th>
+                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Segments</th>
+                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Total Length (m)</th>
+                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Concrete (m³)</th>
+                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 40 (kg)</th>
+                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 60 (kg)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {floor.beamBreakdown.map((beam) => (
+                                  <tr key={beam.beamId} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="py-3 px-2 font-medium text-blue-600">{beam.beamId}</td>
+                                    <td className="py-3 px-2 text-center text-sm text-gray-600">
+                                      {beam.segments.join(', ')}
+                                    </td>
+                                    <td className="py-3 px-2 text-center font-mono">{beam.totalLength.toFixed(1)}</td>
+                                    <td className="py-3 px-2 text-center font-mono">{beam.concreteVolume.toFixed(2)}</td>
+                                    <td className="py-3 px-2 text-center font-mono text-orange-600">
+                                      {beam.grade40Steel.toFixed(0)}
+                                    </td>
+                                    <td className="py-3 px-2 text-center font-mono text-red-600">
+                                      {beam.grade60Steel.toFixed(0)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
