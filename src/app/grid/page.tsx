@@ -125,7 +125,7 @@ export default function GridPage() {
           row: rows[r].label,
           from: cols[c - 1].label,
           to: cols[c].label,
-          length: cols[c].position - cols[c - 1].position,
+          length: Math.abs(cols[c].position - cols[c - 1].position),
           beamId: colBeamIds[(r * (cols.length - 1)) + (c - 1)] || "",
         });
       }
@@ -144,7 +144,7 @@ export default function GridPage() {
           col: cols[c].label,
           from: rows[r - 1].label,
           to: rows[r].label,
-          length: rows[r].position - rows[r - 1].position,
+          length: Math.abs(rows[r].position - rows[r - 1].position),
           beamId: rowBeamIds[(c * (rows.length - 1)) + (r - 1)] || "",
         });
       }
