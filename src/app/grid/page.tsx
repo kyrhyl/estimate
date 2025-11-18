@@ -16,6 +16,18 @@ type BeamSpec = {
   stirrupQty: number;
 };
 
+// ColumnSpec type definition
+type ColumnSpec = {
+  id: string;
+  width: number;
+  depth: number;
+  height: number; // floor-to-floor height
+  mainBarSize: number;
+  mainBarQty: number;
+  tieSize: number;
+  tieSpacing: number; // spacing in meters
+};
+
 // Multi-floor data structures
 type GridSystem = {
   numCols: number;
@@ -30,8 +42,10 @@ type Floor = {
   name: string;
   gridSystem: GridSystem;
   beamSpecs: BeamSpec[];
+  columnSpecs: ColumnSpec[];
   colBeamIds: string[];
   rowBeamIds: string[];
+  columnIds: string[]; // grid intersection assignments
   inheritsGrid: boolean;
 };
 
@@ -59,12 +73,20 @@ type BuildingSummary = {
       grade40Steel: number;
       grade60Steel: number;
     }[];
+    columnBreakdown: {
+      columnId: string;
+      locations: string[];
+      count: number;
+      concreteVolume: number;
+      grade40Steel: number;
+      grade60Steel: number;
+    }[];
   }[];
 };
 
 export default function GridPage() {
   const [currentFloorId, setCurrentFloorId] = useState("floor-1");
-  const [activeTab, setActiveTab] = useState<'beams' | 'grid' | 'summary'>('beams');
+  const [activeTab, setActiveTab] = useState<'beams' | 'columns' | 'grid' | 'summary'>('beams');
 
   // Multi-floor state management
   const [building, setBuilding] = useState<Building>({
@@ -95,8 +117,14 @@ export default function GridPage() {
           { id: "B2", width: 0.3, depth: 0.6, topBarSize: 12, topBarQty: 2, webBarSize: 8, webBarQty: 2, bottomBarSize: 12, bottomBarQty: 2, stirrupSize: 8, stirrupQty: 8 },
           { id: "B3", width: 0.25, depth: 0.4, topBarSize: 10, topBarQty: 2, webBarSize: 8, webBarQty: 2, bottomBarSize: 10, bottomBarQty: 2, stirrupSize: 8, stirrupQty: 6 },
         ],
+        columnSpecs: [
+          { id: "C1", width: 0.4, depth: 0.4, height: 3.0, mainBarSize: 16, mainBarQty: 8, tieSize: 10, tieSpacing: 0.15 },
+          { id: "C2", width: 0.5, depth: 0.5, height: 3.0, mainBarSize: 20, mainBarQty: 12, tieSize: 10, tieSpacing: 0.15 },
+          { id: "C3", width: 0.3, depth: 0.3, height: 3.0, mainBarSize: 12, mainBarQty: 6, tieSize: 8, tieSpacing: 0.2 },
+        ],
         colBeamIds: Array(3 * 3).fill(""),
         rowBeamIds: Array(4 * 2).fill(""),
+        columnIds: Array(4 * 3).fill(""), // grid intersections
         inheritsGrid: false,
       },
     ],
@@ -109,8 +137,10 @@ export default function GridPage() {
   const cols = currentFloor.gridSystem.cols;
   const rows = currentFloor.gridSystem.rows;
   const beamSpecs = currentFloor.beamSpecs;
+  const columnSpecs = currentFloor.columnSpecs;
   const colBeamIds = currentFloor.colBeamIds;
   const rowBeamIds = currentFloor.rowBeamIds;
+  const columnIds = currentFloor.columnIds;
 
   // Floor management functions
   const addFloor = () => {
@@ -123,8 +153,10 @@ export default function GridPage() {
         ...building.floors[0].gridSystem, // Inherit from ground floor
       },
       beamSpecs: [...building.floors[0].beamSpecs], // Copy beam specs
+      columnSpecs: [...building.floors[0].columnSpecs], // Copy column specs
       colBeamIds: Array(building.floors[0].gridSystem.numRows * (building.floors[0].gridSystem.numCols - 1)).fill(""),
       rowBeamIds: Array(building.floors[0].gridSystem.numCols * (building.floors[0].gridSystem.numRows - 1)).fill(""),
+      columnIds: Array(building.floors[0].gridSystem.numCols * building.floors[0].gridSystem.numRows).fill(""),
       inheritsGrid: true,
     };
 
@@ -286,6 +318,42 @@ export default function GridPage() {
     return { grade40Weight, grade60Weight, totalWeight: grade40Weight + grade60Weight };
   };
 
+  // Calculate column reinforcement weights
+  const calculateColumnReinforcementWeights = (column: ColumnSpec) => {
+    // Main bars weight calculation
+    const mainBarWeight = BAR_WEIGHTS[column.mainBarSize] || 0;
+    const mainBarTotalWeight = mainBarWeight * column.height * column.mainBarQty;
+    
+    // Ties weight calculation (perimeter ties)
+    const columnPerimeter = 2 * (column.width + column.depth);
+    const numberOfTies = Math.ceil(column.height / column.tieSpacing);
+    const tieWeight = BAR_WEIGHTS[column.tieSize] || 0;
+    const tiesTotalWeight = tieWeight * columnPerimeter * numberOfTies;
+    
+    const totalSteelWeight = mainBarTotalWeight + tiesTotalWeight;
+    
+    // Grade classification (same as beams)
+    const mainBarGrade = column.mainBarSize < 16 ? 40 : 60;
+    const tieGrade = column.tieSize < 16 ? 40 : 60;
+    
+    let grade40Weight = 0;
+    let grade60Weight = 0;
+    
+    if (mainBarGrade === 40) {
+      grade40Weight += mainBarTotalWeight;
+    } else {
+      grade60Weight += mainBarTotalWeight;
+    }
+    
+    if (tieGrade === 40) {
+      grade40Weight += tiesTotalWeight;
+    } else {
+      grade60Weight += tiesTotalWeight;
+    }
+    
+    return { grade40Weight, grade60Weight, totalWeight: grade40Weight + grade60Weight };
+  };
+
   // Calculate building summary across all floors
   const calculateBuildingSummary = (): BuildingSummary => {
     let totalConcreteVolume = 0;
@@ -342,7 +410,9 @@ export default function GridPage() {
       let floorGrade40Steel = 0;
       let floorGrade60Steel = 0;
       const beamBreakdown: BuildingSummary['floorBreakdown'][0]['beamBreakdown'] = [];
+      const columnBreakdown: BuildingSummary['floorBreakdown'][0]['columnBreakdown'] = [];
       
+      // Add beam calculations
       beamSummaryMap.forEach((summary, beamId) => {
         const beam = floor.beamSpecs.find(b => b.id === beamId);
         if (beam) {
@@ -366,6 +436,47 @@ export default function GridPage() {
         }
       });
       
+      // Add column calculations with location tracking
+      const columnSummaryMap = new Map();
+      floor.columnIds.forEach((columnId, index) => {
+        if (columnId) {
+          const rowIndex = Math.floor(index / floor.gridSystem.numCols);
+          const colIndex = index % floor.gridSystem.numCols;
+          const location = `${floor.gridSystem.rows[rowIndex].label}${floor.gridSystem.cols[colIndex].label}`;
+          
+          if (!columnSummaryMap.has(columnId)) {
+            columnSummaryMap.set(columnId, { locations: [], count: 0 });
+          }
+          const summary = columnSummaryMap.get(columnId);
+          summary.locations.push(location);
+          summary.count += 1;
+        }
+      });
+      
+      columnSummaryMap.forEach((summary, columnId) => {
+        const column = floor.columnSpecs.find(c => c.id === columnId);
+        if (column) {
+          const singleColumnConcreteVolume = column.width * column.depth * column.height;
+          const weights = calculateColumnReinforcementWeights(column);
+          const totalColumnConcreteVolume = singleColumnConcreteVolume * summary.count;
+          const totalGrade40Steel = weights.grade40Weight * summary.count;
+          const totalGrade60Steel = weights.grade60Weight * summary.count;
+          
+          floorConcreteVolume += totalColumnConcreteVolume;
+          floorGrade40Steel += totalGrade40Steel;
+          floorGrade60Steel += totalGrade60Steel;
+          
+          columnBreakdown.push({
+            columnId,
+            locations: summary.locations,
+            count: summary.count,
+            concreteVolume: totalColumnConcreteVolume,
+            grade40Steel: totalGrade40Steel,
+            grade60Steel: totalGrade60Steel,
+          });
+        }
+      });
+      
       totalConcreteVolume += floorConcreteVolume;
       totalGrade40Steel += floorGrade40Steel;
       totalGrade60Steel += floorGrade60Steel;
@@ -377,6 +488,7 @@ export default function GridPage() {
         grade40Steel: floorGrade40Steel,
         grade60Steel: floorGrade60Steel,
         beamBreakdown,
+        columnBreakdown,
       });
     });
     
@@ -531,6 +643,16 @@ export default function GridPage() {
               }`}
             >
               Beam Specifications
+            </button>
+            <button
+              onClick={() => setActiveTab('columns')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'columns'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Column Specifications
             </button>
             <button
               onClick={() => setActiveTab('grid')}
@@ -801,6 +923,263 @@ export default function GridPage() {
           </div>
         )}
 
+        {activeTab === 'columns' && (
+          <div>
+            {/* Column Specifications Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Column Specifications</h2>
+              <p className="text-gray-600">Configure column dimensions and reinforcement details</p>
+            </div>
+
+            {/* Column Cards Grid */}
+            <div className="grid gap-8 lg:grid-cols-2 xl:grid-cols-3 mb-8">
+              {columnSpecs.map((column) => (
+                <div key={column.id} className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-200">
+                  <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={column.id}
+                          onChange={(e) => {
+                            updateCurrentFloor({
+                              columnSpecs: columnSpecs.map(c => 
+                                c.id === column.id ? { ...c, id: e.target.value } : c
+                              )
+                            });
+                          }}
+                          className="bg-transparent text-white text-xl font-bold border-none outline-none placeholder-green-200 w-full"
+                          placeholder="Column ID"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          updateCurrentFloor({
+                            columnSpecs: columnSpecs.filter(c => c.id !== column.id)
+                          });
+                        }}
+                        className="ml-2 text-green-200 hover:text-white transition-colors duration-150"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    {/* Dimensions */}
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                        Dimensions
+                      </h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Width (m)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={column.width}
+                            onChange={(e) => {
+                              updateCurrentFloor({
+                                columnSpecs: columnSpecs.map(c => 
+                                  c.id === column.id ? { ...c, width: parseFloat(e.target.value) || 0 } : c
+                                )
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Depth (m)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={column.depth}
+                            onChange={(e) => {
+                              updateCurrentFloor({
+                                columnSpecs: columnSpecs.map(c => 
+                                  c.id === column.id ? { ...c, depth: parseFloat(e.target.value) || 0 } : c
+                                )
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Height (m)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={column.height}
+                            onChange={(e) => {
+                              updateCurrentFloor({
+                                columnSpecs: columnSpecs.map(c => 
+                                  c.id === column.id ? { ...c, height: parseFloat(e.target.value) || 0 } : c
+                                )
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Main Reinforcement */}
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                        </svg>
+                        Main Reinforcement
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Bar Size (mm)</label>
+                          <select
+                            value={column.mainBarSize}
+                            onChange={(e) => {
+                              updateCurrentFloor({
+                                columnSpecs: columnSpecs.map(c => 
+                                  c.id === column.id ? { ...c, mainBarSize: parseInt(e.target.value) } : c
+                                )
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          >
+                            {BAR_SIZES.map(size => (
+                              <option key={size} value={size}>{size}mm</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                          <input
+                            type="number"
+                            value={column.mainBarQty}
+                            onChange={(e) => {
+                              updateCurrentFloor({
+                                columnSpecs: columnSpecs.map(c => 
+                                  c.id === column.id ? { ...c, mainBarQty: parseInt(e.target.value) || 0 } : c
+                                )
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ties/Hoops */}
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Ties/Hoops
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Tie Size (mm)</label>
+                          <select
+                            value={column.tieSize}
+                            onChange={(e) => {
+                              updateCurrentFloor({
+                                columnSpecs: columnSpecs.map(c => 
+                                  c.id === column.id ? { ...c, tieSize: parseInt(e.target.value) } : c
+                                )
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          >
+                            {BAR_SIZES.map(size => (
+                              <option key={size} value={size}>{size}mm</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Spacing (m)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={column.tieSpacing}
+                            onChange={(e) => {
+                              updateCurrentFloor({
+                                columnSpecs: columnSpecs.map(c => 
+                                  c.id === column.id ? { ...c, tieSpacing: parseFloat(e.target.value) || 0 } : c
+                                )
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Calculated Values */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-gray-800 mb-3">Calculated Values</h4>
+                      {(() => {
+                        const weights = calculateColumnReinforcementWeights(column);
+                        const concreteVolume = column.width * column.depth * column.height;
+                        return (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Concrete Volume:</span>
+                              <span className="font-medium">{concreteVolume.toFixed(3)} m³</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Grade 40 Steel:</span>
+                              <span className="font-medium text-orange-600">{weights.grade40Weight.toFixed(1)} kg</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Grade 60 Steel:</span>
+                              <span className="font-medium text-red-600">{weights.grade60Weight.toFixed(1)} kg</span>
+                            </div>
+                            <div className="flex justify-between text-sm border-t pt-2">
+                              <span className="font-semibold text-gray-700">Total Steel:</span>
+                              <span className="font-bold">{weights.totalWeight.toFixed(1)} kg</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Column Button */}
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  updateCurrentFloor({
+                    columnSpecs: [...columnSpecs, { 
+                      id: `C${columnSpecs.length + 1}`, 
+                      width: 0.4, 
+                      depth: 0.4, 
+                      height: 3.0,
+                      mainBarSize: 16, 
+                      mainBarQty: 8, 
+                      tieSize: 10, 
+                      tieSpacing: 0.15 
+                    }]
+                  });
+                }}
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Column Specification
+              </button>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'grid' && (
           <div>
             {/* Grid System Section */}
@@ -809,80 +1188,296 @@ export default function GridPage() {
               <p className="text-gray-600">Configure grid layout and assign beam types to grid segments</p>
             </div>
 
-            {/* Grid Configuration Cards */}
-            <div className="flex gap-6 mb-8">
-              {/* Grid Size Card - 10% width */}
-              <div className="w-1/6 bg-white rounded-lg shadow-md p-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 text-center">Grid Size</h3>
-                <div className="space-y-3">
+            {/* Grid Configuration and Summary Layout */}
+            <div className="flex gap-8 mb-8">
+              {/* Grid Size Configuration - 10% width */}
+              <div className="w-[10%] bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Grid</h3>
+                <div className="space-y-8">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1 text-center">Columns</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 text-center">
+                      Number of Rows
+                    </label>
                     <input
                       type="number"
-                      min={1}
-                      value={numCols}
-                      onChange={handleNumColsChange}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                      min="2"
+                      max="10"
+                      value={numRows}
+                      onChange={handleNumRowsChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1 text-center">Rows</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 text-center">
+                      Number of Columns
+                    </label>
                     <input
                       type="number"
-                      min={1}
-                      value={numRows}
-                      onChange={handleNumRowsChange}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                      min="2"
+                      max="10"
+                      value={numCols}
+                      onChange={handleNumColsChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Beam Summary Card - 90% width */}
-              <div className="flex-1 bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Beam Summary & Segments</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full border border-gray-200">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase">Beam ID</th>
-                        <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase">Segments</th>
-                        <th className="p-3 text-center text-xs font-medium text-gray-500 uppercase">Total Length</th>
-                        <th className="p-3 text-center text-xs font-medium text-gray-500 uppercase">Volume (m³)</th>
-                        <th className="p-3 text-center text-xs font-medium text-gray-500 uppercase">Grade 40 (kg)</th>
-                        <th className="p-3 text-center text-xs font-medium text-gray-500 uppercase">Grade 60 (kg)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {beamSummary.map((row, idx) => {
-                        const beam = beamSpecs.find(b => b.id === row.beamId);
-                        const weights = beam ? calculateReinforcementWeights(beam) : { grade40Weight: 0, grade60Weight: 0 };
-                        return (
-                          <tr key={idx} className="border-t border-gray-200">
-                            <td className="p-3 font-medium">{row.beamId}</td>
-                            <td className="p-3">
-                              <div className="text-sm text-gray-600">
-                                {row.segments.map((segment, segIdx) => (
-                                  <span key={segIdx} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mr-1 mb-1">
-                                    {segment}
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="p-3 text-sm text-center">{row.totalLength}m</td>
-                            <td className="p-3 text-sm text-center">{(row.totalLength * row.volumePerMeter).toFixed(3)}</td>
-                            <td className="p-3 text-sm text-center">{(weights.grade40Weight * row.totalLength).toFixed(2)}</td>
-                            <td className="p-3 text-sm text-center">{(weights.grade60Weight * row.totalLength).toFixed(2)}</td>
-                          </tr>
-                        );
-                      })}
-                      {beamSummary.length === 0 && (
-                        <tr>
-                          <td className="p-3 text-gray-500 text-center" colSpan={6}>No segments assigned yet</td>
-                        </tr>
+              {/* Summaries Column - Takes up 90% width */}
+              <div className="flex-1 space-y-6">
+                {/* Beam Summary */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Beam Summary</h3>
+                  <p className="text-gray-600 mb-4">Quantity overview of beam usage on this floor</p>
+                
+                {(() => {
+                  // Calculate beam summary
+                  const beamSummaryMap = new Map();
+                  
+                  // Column lengths (X direction)
+                  const colLengths = [];
+                  for (let r = 0; r < numRows; r++) {
+                    for (let c = 0; c < numCols - 1; c++) {
+                      const from = cols[c];
+                      const to = cols[c + 1];
+                      const length = Math.abs(to.position - from.position);
+                      const beamIdIndex = r * (numCols - 1) + c;
+                      const beamId = colBeamIds[beamIdIndex];
+                      if (beamId) {
+                        colLengths.push({ beamId, length, segment: `${rows[r].label}${from.label}-${rows[r].label}${to.label}` });
+                      }
+                    }
+                  }
+                  
+                  // Row lengths (Y direction)
+                  const rowLengths = [];
+                  for (let c = 0; c < numCols; c++) {
+                    for (let r = 0; r < numRows - 1; r++) {
+                      const from = rows[r];
+                      const to = rows[r + 1];
+                      const length = Math.abs(to.position - from.position);
+                      const beamIdIndex = c * (numRows - 1) + r;
+                      const beamId = rowBeamIds[beamIdIndex];
+                      if (beamId) {
+                        rowLengths.push({ beamId, length, segment: `${from.label}${cols[c].label}-${to.label}${cols[c].label}` });
+                      }
+                    }
+                  }
+                  
+                  // Aggregate beam data
+                  [...colLengths, ...rowLengths].forEach(({ beamId, length, segment }) => {
+                    if (!beamSummaryMap.has(beamId)) {
+                      beamSummaryMap.set(beamId, { segments: [], totalLength: 0 });
+                    }
+                    const summary = beamSummaryMap.get(beamId);
+                    summary.segments.push(segment);
+                    summary.totalLength += length;
+                  });
+
+                  return (
+                    <div>
+                      {beamSummaryMap.size > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Beam ID</th>
+                                <th className="text-center py-3 px-4 font-medium text-gray-900">Segments</th>
+                                <th className="text-center py-3 px-4 font-medium text-gray-900">Count</th>
+                                <th className="text-center py-3 px-4 font-medium text-gray-900">Total Length (m)</th>
+                                <th className="text-center py-3 px-4 font-medium text-gray-900">Concrete (m³)</th>
+                                <th className="text-center py-3 px-4 font-medium text-gray-900">Grade 40 (kg)</th>
+                                <th className="text-center py-3 px-4 font-medium text-gray-900">Grade 60 (kg)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {Array.from(beamSummaryMap.entries()).map(([beamId, summary]) => {
+                                const beam = beamSpecs.find(b => b.id === beamId);
+                                if (!beam) return null;
+                                
+                                const concreteVolume = summary.totalLength * beam.width * beam.depth;
+                                const weights = calculateReinforcementWeights(beam);
+                                const grade40Steel = weights.grade40Weight * summary.totalLength;
+                                const grade60Steel = weights.grade60Weight * summary.totalLength;
+                                
+                                return (
+                                  <tr key={beamId} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="py-3 px-4 font-medium text-blue-600">{beamId}</td>
+                                    <td className="py-3 px-4 text-center text-sm text-gray-600">
+                                      {summary.segments.join(', ')}
+                                    </td>
+                                    <td className="py-3 px-4 text-center font-mono font-semibold text-blue-600">
+                                      {summary.segments.length}
+                                    </td>
+                                    <td className="py-3 px-4 text-center font-mono">{summary.totalLength.toFixed(1)}</td>
+                                    <td className="py-3 px-4 text-center font-mono">{concreteVolume.toFixed(2)}</td>
+                                    <td className="py-3 px-4 text-center font-mono text-orange-600">
+                                      {grade40Steel.toFixed(0)}
+                                    </td>
+                                    <td className="py-3 px-4 text-center font-mono text-red-600">
+                                      {grade60Steel.toFixed(0)}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                            <tfoot>
+                              <tr className="border-t-2 border-gray-300 bg-gray-50">
+                                <td className="py-3 px-4 font-bold text-gray-900">TOTALS</td>
+                                <td className="py-3 px-4"></td>
+                                <td className="py-3 px-4 text-center font-bold text-blue-600">
+                                  {Array.from(beamSummaryMap.values()).reduce((sum, summary) => sum + summary.segments.length, 0)}
+                                </td>
+                                <td className="py-3 px-4 text-center font-mono font-bold">
+                                  {Array.from(beamSummaryMap.values()).reduce((sum, summary) => sum + summary.totalLength, 0).toFixed(1)}
+                                </td>
+                                <td className="py-3 px-4 text-center font-mono font-bold">
+                                  {Array.from(beamSummaryMap.entries()).reduce((sum, [beamId, summary]) => {
+                                    const beam = beamSpecs.find(b => b.id === beamId);
+                                    return sum + (beam ? summary.totalLength * beam.width * beam.depth : 0);
+                                  }, 0).toFixed(2)}
+                                </td>
+                                <td className="py-3 px-4 text-center font-mono font-bold text-orange-600">
+                                  {Array.from(beamSummaryMap.entries()).reduce((sum, [beamId, summary]) => {
+                                    const beam = beamSpecs.find(b => b.id === beamId);
+                                    if (!beam) return sum;
+                                    const weights = calculateReinforcementWeights(beam);
+                                    return sum + weights.grade40Weight * summary.totalLength;
+                                  }, 0).toFixed(0)}
+                                </td>
+                                <td className="py-3 px-4 text-center font-mono font-bold text-red-600">
+                                  {Array.from(beamSummaryMap.entries()).reduce((sum, [beamId, summary]) => {
+                                    const beam = beamSpecs.find(b => b.id === beamId);
+                                    if (!beam) return sum;
+                                    const weights = calculateReinforcementWeights(beam);
+                                    return sum + weights.grade60Weight * summary.totalLength;
+                                  }, 0).toFixed(0)}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>No beams assigned to grid segments yet.</p>
+                        </div>
                       )}
-                    </tbody>
-                  </table>
+                    </div>
+                  );
+                })()}
+                </div>
+
+                {/* Column Summary */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Column Summary</h3>
+                  <p className="text-gray-600 mb-4">Quantity overview of column usage on this floor</p>
+                  
+                  {(() => {
+                    // Calculate column summary
+                    const columnSummaryMap = new Map();
+                    
+                    columnIds.forEach((columnId, index) => {
+                      if (columnId && columnId.trim() !== "") {
+                        const rowIndex = Math.floor(index / numCols);
+                        const colIndex = index % numCols;
+                        const location = `${rows[rowIndex]?.label || 'Unknown'}${cols[colIndex]?.label || 'Unknown'}`;
+                        
+                        if (!columnSummaryMap.has(columnId)) {
+                          columnSummaryMap.set(columnId, { locations: [], count: 0 });
+                        }
+                        const summary = columnSummaryMap.get(columnId);
+                        summary.locations.push(location);
+                        summary.count += 1;
+                      }
+                    });
+
+                    return (
+                      <div>
+                        {columnSummaryMap.size > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full">
+                              <thead>
+                                <tr className="border-b border-gray-200">
+                                  <th className="text-left py-3 px-4 font-medium text-gray-900">Column ID</th>
+                                  <th className="text-center py-3 px-4 font-medium text-gray-900">Locations</th>
+                                  <th className="text-center py-3 px-4 font-medium text-gray-900">Count</th>
+                                  <th className="text-center py-3 px-4 font-medium text-gray-900">Concrete (m³)</th>
+                                  <th className="text-center py-3 px-4 font-medium text-gray-900">Grade 40 (kg)</th>
+                                  <th className="text-center py-3 px-4 font-medium text-gray-900">Grade 60 (kg)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Array.from(columnSummaryMap.entries()).map(([columnId, summary]) => {
+                                  const column = columnSpecs.find(c => c.id === columnId);
+                                  if (!column) return null;
+                                  
+                                  const singleColumnConcreteVolume = column.width * column.depth * column.height;
+                                  const totalConcreteVolume = singleColumnConcreteVolume * summary.count;
+                                  const weights = calculateColumnReinforcementWeights(column);
+                                  const totalGrade40Steel = weights.grade40Weight * summary.count;
+                                  const totalGrade60Steel = weights.grade60Weight * summary.count;
+                                  
+                                  return (
+                                    <tr key={columnId} className="border-b border-gray-100 hover:bg-gray-50">
+                                      <td className="py-3 px-4 font-medium text-green-600">{columnId}</td>
+                                      <td className="py-3 px-4 text-center text-sm text-gray-600">
+                                        {summary.locations.join(', ')}
+                                      </td>
+                                      <td className="py-3 px-4 text-center font-mono font-semibold text-green-600">
+                                        {summary.count}
+                                      </td>
+                                      <td className="py-3 px-4 text-center font-mono">{totalConcreteVolume.toFixed(2)}</td>
+                                      <td className="py-3 px-4 text-center font-mono text-orange-600">
+                                        {totalGrade40Steel.toFixed(0)}
+                                      </td>
+                                      <td className="py-3 px-4 text-center font-mono text-red-600">
+                                        {totalGrade60Steel.toFixed(0)}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                              <tfoot>
+                                <tr className="border-t-2 border-gray-300 bg-gray-50">
+                                  <td className="py-3 px-4 font-bold text-gray-900">TOTALS</td>
+                                  <td className="py-3 px-4"></td>
+                                  <td className="py-3 px-4 text-center font-bold text-green-600">
+                                    {Array.from(columnSummaryMap.values()).reduce((sum, summary) => sum + summary.count, 0)}
+                                  </td>
+                                  <td className="py-3 px-4 text-center font-mono font-bold">
+                                    {Array.from(columnSummaryMap.entries()).reduce((sum, [columnId, summary]) => {
+                                      const column = columnSpecs.find(c => c.id === columnId);
+                                      return sum + (column ? column.width * column.depth * column.height * summary.count : 0);
+                                    }, 0).toFixed(2)}
+                                  </td>
+                                  <td className="py-3 px-4 text-center font-mono font-bold text-orange-600">
+                                    {Array.from(columnSummaryMap.entries()).reduce((sum, [columnId, summary]) => {
+                                      const column = columnSpecs.find(c => c.id === columnId);
+                                      if (!column) return sum;
+                                      const weights = calculateColumnReinforcementWeights(column);
+                                      return sum + weights.grade40Weight * summary.count;
+                                    }, 0).toFixed(0)}
+                                  </td>
+                                  <td className="py-3 px-4 text-center font-mono font-bold text-red-600">
+                                    {Array.from(columnSummaryMap.entries()).reduce((sum, [columnId, summary]) => {
+                                      const column = columnSpecs.find(c => c.id === columnId);
+                                      if (!column) return sum;
+                                      const weights = calculateColumnReinforcementWeights(column);
+                                      return sum + weights.grade60Weight * summary.count;
+                                    }, 0).toFixed(0)}
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            <p>No columns assigned to grid intersections yet.</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -1048,6 +1643,46 @@ export default function GridPage() {
                 </div>
               </div>
             </div>
+
+            {/* Column Assignment Section */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Column Assignment</h3>
+              <p className="text-gray-600 mb-4">Assign column types to grid intersections</p>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="grid gap-3" style={{
+                  gridTemplateColumns: `repeat(${numCols}, 1fr)`,
+                  gridTemplateRows: `repeat(${numRows}, 1fr)`
+                }}>
+                  {Array.from({ length: numRows }, (_, r) => 
+                    Array.from({ length: numCols }, (_, c) => {
+                      const index = r * numCols + c;
+                      return (
+                        <div key={`${r}-${c}`} className="flex flex-col items-center space-y-2">
+                          <div className="text-sm font-medium text-gray-700">
+                            {rows[r].label}{cols[c].label}
+                          </div>
+                          <select
+                            value={columnIds[index] || ""}
+                            onChange={(e) => {
+                              const newColumnIds = [...columnIds];
+                              newColumnIds[index] = e.target.value;
+                              updateCurrentFloor({ columnIds: newColumnIds });
+                            }}
+                            className="w-20 px-2 py-1 text-xs border border-gray-300 rounded text-center focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                          >
+                            <option value="">-</option>
+                            {columnSpecs.map(column => (
+                              <option key={column.id} value={column.id}>{column.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1118,38 +1753,80 @@ export default function GridPage() {
 
                         {/* Beam Details */}
                         <div className="p-6">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full">
-                              <thead>
-                                <tr className="border-b border-gray-200">
-                                  <th className="text-left py-3 px-2 font-medium text-gray-900">Beam ID</th>
-                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Segments</th>
-                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Total Length (m)</th>
-                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Concrete (m³)</th>
-                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 40 (kg)</th>
-                                  <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 60 (kg)</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {floor.beamBreakdown.map((beam) => (
-                                  <tr key={beam.beamId} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td className="py-3 px-2 font-medium text-blue-600">{beam.beamId}</td>
-                                    <td className="py-3 px-2 text-center text-sm text-gray-600">
-                                      {beam.segments.join(', ')}
-                                    </td>
-                                    <td className="py-3 px-2 text-center font-mono">{beam.totalLength.toFixed(1)}</td>
-                                    <td className="py-3 px-2 text-center font-mono">{beam.concreteVolume.toFixed(2)}</td>
-                                    <td className="py-3 px-2 text-center font-mono text-orange-600">
-                                      {beam.grade40Steel.toFixed(0)}
-                                    </td>
-                                    <td className="py-3 px-2 text-center font-mono text-red-600">
-                                      {beam.grade60Steel.toFixed(0)}
-                                    </td>
+                          <div className="mb-6">
+                            <h5 className="text-lg font-semibold text-gray-900 mb-3">Beams</h5>
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full">
+                                <thead>
+                                  <tr className="border-b border-gray-200">
+                                    <th className="text-left py-3 px-2 font-medium text-gray-900">Beam ID</th>
+                                    <th className="text-center py-3 px-2 font-medium text-gray-900">Segments</th>
+                                    <th className="text-center py-3 px-2 font-medium text-gray-900">Total Length (m)</th>
+                                    <th className="text-center py-3 px-2 font-medium text-gray-900">Concrete (m³)</th>
+                                    <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 40 (kg)</th>
+                                    <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 60 (kg)</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {floor.beamBreakdown.map((beam) => (
+                                    <tr key={beam.beamId} className="border-b border-gray-100 hover:bg-gray-50">
+                                      <td className="py-3 px-2 font-medium text-blue-600">{beam.beamId}</td>
+                                      <td className="py-3 px-2 text-center text-sm text-gray-600">
+                                        {beam.segments.join(', ')}
+                                      </td>
+                                      <td className="py-3 px-2 text-center font-mono">{beam.totalLength.toFixed(1)}</td>
+                                      <td className="py-3 px-2 text-center font-mono">{beam.concreteVolume.toFixed(2)}</td>
+                                      <td className="py-3 px-2 text-center font-mono text-orange-600">
+                                        {beam.grade40Steel.toFixed(0)}
+                                      </td>
+                                      <td className="py-3 px-2 text-center font-mono text-red-600">
+                                        {beam.grade60Steel.toFixed(0)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
+
+                          {/* Column Details */}
+                          {floor.columnBreakdown.length > 0 && (
+                            <div>
+                              <h5 className="text-lg font-semibold text-gray-900 mb-3">Columns</h5>
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full">
+                                  <thead>
+                                    <tr className="border-b border-gray-200">
+                                      <th className="text-left py-3 px-2 font-medium text-gray-900">Column ID</th>
+                                      <th className="text-center py-3 px-2 font-medium text-gray-900">Locations</th>
+                                      <th className="text-center py-3 px-2 font-medium text-gray-900">Count</th>
+                                      <th className="text-center py-3 px-2 font-medium text-gray-900">Concrete (m³)</th>
+                                      <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 40 (kg)</th>
+                                      <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 60 (kg)</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {floor.columnBreakdown.map((column) => (
+                                      <tr key={column.columnId} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <td className="py-3 px-2 font-medium text-green-600">{column.columnId}</td>
+                                        <td className="py-3 px-2 text-center text-sm text-gray-600">
+                                          {column.locations.join(', ')}
+                                        </td>
+                                        <td className="py-3 px-2 text-center font-mono">{column.count}</td>
+                                        <td className="py-3 px-2 text-center font-mono">{column.concreteVolume.toFixed(2)}</td>
+                                        <td className="py-3 px-2 text-center font-mono text-orange-600">
+                                          {column.grade40Steel.toFixed(0)}
+                                        </td>
+                                        <td className="py-3 px-2 text-center font-mono text-red-600">
+                                          {column.grade60Steel.toFixed(0)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
