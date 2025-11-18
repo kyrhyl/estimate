@@ -47,8 +47,13 @@ export default function GridPage() {
        { label: "C", position: 8 },
   ]);
   const [selectedCoord, setSelectedCoord] = useState("");
-  // User-defined Beam IDs
-  const [beamIdList, setBeamIdList] = useState(["B1", "B2", "B3"]);
+  // User-defined Beam IDs and their properties
+  type BeamSpec = { id: string; width: number; depth: number };
+  const [beamSpecs, setBeamSpecs] = useState<BeamSpec[]>([
+    { id: "B1", width: 0.3, depth: 0.5 },
+    { id: "B2", width: 0.3, depth: 0.6 },
+    { id: "B3", width: 0.25, depth: 0.4 },
+  ]);
   // Selected Beam IDs for each length
   const [colBeamIds, setColBeamIds] = useState(Array(rows.length * (cols.length - 1)).fill(""));
   const [rowBeamIds, setRowBeamIds] = useState(Array(cols.length * (rows.length - 1)).fill(""));
@@ -152,26 +157,33 @@ export default function GridPage() {
   }
 
   // Consolidate segments by Beam ID (must be after colLengths and rowLengths are defined)
-  const beamSummary: { beamId: string, segments: string[], totalLength: number }[] = [];
-  beamIdList.forEach(beamId => {
+  const beamSummary: { beamId: string, segments: string[], totalLength: number, width: number, depth: number, volumePerMeter: number }[] = [];
+  beamSpecs.forEach(beam => {
     const segments: string[] = [];
     let totalLength = 0;
     // Check column segments
     colLengths.forEach((len, idx) => {
-      if (colBeamIds[idx] === beamId) {
+      if (colBeamIds[idx] === beam.id) {
         segments.push(`${len.row}: ${len.from}-${len.to}`);
         totalLength += len.length;
       }
     });
     // Check row segments
     rowLengths.forEach((len, idx) => {
-      if (rowBeamIds[idx] === beamId) {
+      if (rowBeamIds[idx] === beam.id) {
         segments.push(`${len.col}: ${len.from}-${len.to}`);
         totalLength += len.length;
       }
     });
     if (segments.length > 0) {
-      beamSummary.push({ beamId, segments, totalLength });
+      beamSummary.push({
+        beamId: beam.id,
+        segments,
+        totalLength,
+        width: beam.width,
+        depth: beam.depth,
+        volumePerMeter: beam.width * beam.depth,
+      });
     }
   });
 
@@ -196,47 +208,118 @@ export default function GridPage() {
         />
       </div>
       <div className="mb-8">
-        <h2 className="font-semibold mb-2">Beam ID Segment Summary</h2>
+        <h2 className="font-semibold mb-2">Beam Segment & Volume Summary</h2>
         <table className="w-full border">
           <thead>
             <tr className="bg-zinc-200">
               <th className="p-2">Beam ID</th>
+              <th className="p-2">Width (m)</th>
+              <th className="p-2">Depth (m)</th>
+              <th className="p-2">Vol/m (m³)</th>
               <th className="p-2">Segments</th>
               <th className="p-2">Total Length (m)</th>
+              <th className="p-2">Total Volume (m³)</th>
             </tr>
           </thead>
           <tbody>
             {beamSummary.map((row, idx) => (
               <tr key={idx}>
                 <td className="p-2 font-bold">{row.beamId}</td>
+                <td className="p-2">{row.width}</td>
+                <td className="p-2">{row.depth}</td>
+                <td className="p-2">{row.volumePerMeter.toFixed(3)}</td>
                 <td className="p-2">{row.segments.join(", ")}</td>
                 <td className="p-2">{row.totalLength}</td>
+                <td className="p-2">{(row.totalLength * row.volumePerMeter).toFixed(3)}</td>
               </tr>
             ))}
             {beamSummary.length === 0 && (
-              <tr><td className="p-2" colSpan={3}>No segments assigned yet.</td></tr>
+              <tr><td className="p-2" colSpan={7}>No segments assigned yet.</td></tr>
             )}
           </tbody>
         </table>
       </div>
       <h1 className="text-2xl font-bold mb-6">Grid System Definition</h1>
       <div className="mb-8">
-        <h2 className="font-semibold mb-2">Define Beam IDs</h2>
-        <div className="flex flex-col gap-2">
-          {beamIdList.map((id, idx) => (
-          <div key={idx} className="flex gap-2 items-center">
-            <input
-              value={id}
-              onChange={e => {
-                const newList = [...beamIdList];
-                newList[idx] = e.target.value;
-                setBeamIdList(newList);
-              }}
-              className="border rounded px-2 w-16"
-              placeholder={`Beam ID ${idx + 1}`}
-            />
+        <h2 className="font-semibold mb-2">Define Beam Specifications</h2>
+        <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {beamSpecs.map((beam, idx) => (
+              <div key={idx} className="border rounded-md p-2 shadow bg-white dark:bg-zinc-900 text-sm">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="font-semibold mb-0.5">{beam.id || `Beam ${idx + 1}`}</div>
+                    <div className="text-[11px] text-zinc-500">Spec</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="ml-2 px-2 py-0.5 bg-red-500 text-white rounded text-xs"
+                    onClick={() => {
+                      const newSpecs = beamSpecs.filter((_, i) => i !== idx);
+                      setBeamSpecs(newSpecs);
+                    }}
+                  >Delete</button>
+                </div>
+
+                <div className="mt-2 grid grid-cols-2 gap-1 items-center text-sm">
+                  <label className="text-[11px] text-zinc-600">ID</label>
+                  <input
+                    value={beam.id}
+                    onChange={e => {
+                      const newSpecs = [...beamSpecs];
+                      newSpecs[idx].id = e.target.value;
+                      setBeamSpecs(newSpecs);
+                    }}
+                    className="border rounded px-2 py-1 text-sm w-full"
+                    placeholder={`Beam ID ${idx + 1}`}
+                  />
+
+                  <label className="text-[11px] text-zinc-600">W (m)</label>
+                  <input
+                    type="number"
+                    value={beam.width}
+                    min={0.01}
+                    step={0.01}
+                    onChange={e => {
+                      const newSpecs = [...beamSpecs];
+                      newSpecs[idx].width = Number(e.target.value);
+                      setBeamSpecs(newSpecs);
+                    }}
+                    className="border rounded px-2 py-1 text-sm w-full"
+                    placeholder="Width"
+                  />
+
+                  <label className="text-[11px] text-zinc-600">D (m)</label>
+                  <input
+                    type="number"
+                    value={beam.depth}
+                    min={0.01}
+                    step={0.01}
+                    onChange={e => {
+                      const newSpecs = [...beamSpecs];
+                      newSpecs[idx].depth = Number(e.target.value);
+                      setBeamSpecs(newSpecs);
+                    }}
+                    className="border rounded px-2 py-1 text-sm w-full"
+                    placeholder="Depth"
+                  />
+
+                  <label className="text-[11px] text-zinc-600">Vol/m</label>
+                  <div className="text-sm">{(beam.width * beam.depth).toFixed(3)} m³</div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+
+          <div className="mt-3">
+            <button
+              type="button"
+              className="px-3 py-1 bg-blue-500 text-white rounded text-sm"
+              onClick={() => {
+                setBeamSpecs([...beamSpecs, { id: `B${beamSpecs.length + 1}`, width: 0.3, depth: 0.5 }]);
+              }}
+            >Add Beam</button>
+          </div>
         </div>
         <div>
           <h2 className="font-semibold mb-2">Columns (Grid X)</h2>
@@ -354,8 +437,8 @@ export default function GridPage() {
                       className="border rounded px-2 w-24"
                     >
                       <option value="">Select Beam</option>
-                      {beamIdList.map((id, i) => (
-                        <option key={i} value={id}>{id}</option>
+                      {beamSpecs.map((beam, i) => (
+                        <option key={i} value={beam.id}>{beam.id}</option>
                       ))}
                     </select>
                   </td>
@@ -394,8 +477,8 @@ export default function GridPage() {
                       className="border rounded px-2 w-24"
                     >
                       <option value="">Select Beam</option>
-                      {beamIdList.map((id, i) => (
-                        <option key={i} value={id}>{id}</option>
+                      {beamSpecs.map((beam, i) => (
+                        <option key={i} value={beam.id}>{beam.id}</option>
                       ))}
                     </select>
                   </td>
