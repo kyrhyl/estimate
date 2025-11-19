@@ -31,7 +31,7 @@ export default function RootLayout({
           </div>
           <div className="flex gap-6">
             <a href="/" className="hover:underline">Home</a>
-            <a href="/grid" className="hover:underline">Grid System</a>
+            <a href="/structural" className="hover:underline">Structural</a>
             <a href="/estimates" className="hover:underline">Estimates</a>
           </div>
         </nav>
