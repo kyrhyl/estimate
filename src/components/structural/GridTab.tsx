@@ -135,12 +135,14 @@ export default function GridTab({
             
             // Aggregate beam data
             [...colLengths, ...rowLengths].forEach(({ beamId, length, segment }) => {
-              if (!beamSummaryMap.has(beamId)) {
+              if (beamId && !beamSummaryMap.has(beamId)) {
                 beamSummaryMap.set(beamId, { segments: [], totalLength: 0 });
               }
-              const summary = beamSummaryMap.get(beamId);
-              summary.segments.push(segment);
-              summary.totalLength += length;
+              if (beamId) {
+                const summary = beamSummaryMap.get(beamId);
+                summary.segments.push(segment);
+                summary.totalLength += length;
+              }
             });
 
             return (
@@ -427,7 +429,18 @@ export default function GridTab({
       {/* Beam Assignment Tables */}
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Column Beams (X Direction)</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Column Beams (X Direction)</h3>
+            <button
+              onClick={() => {
+                setColBeamIds(Array(colBeamIds.length).fill(""));
+                setRowBeamIds(Array(rowBeamIds.length).fill(""));
+              }}
+              className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              Clear All Beams
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border border-gray-200 text-sm">
               <thead>

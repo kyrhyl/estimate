@@ -205,8 +205,8 @@ describe('SummaryTab', () => {
 
     render(<SummaryTab building={mockBuilding} />)
 
-    expect(screen.getByText('Beams')).toBeInTheDocument()
-    // Table should still render even with no beam data
+    expect(screen.queryByText('Beams')).not.toBeInTheDocument()
+    // Table should not render when no beam data
   })
 
   it('handles floors with no columns', () => {

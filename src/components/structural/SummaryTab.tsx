@@ -71,41 +71,43 @@ export default function SummaryTab({ building }: SummaryTabProps) {
 
               {/* Beam Details */}
               <div className="p-6">
-                <div className="mb-6">
-                  <h5 className="text-lg font-semibold text-gray-900 mb-3">Beams</h5>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-2 font-medium text-gray-900">Beam ID</th>
-                          <th className="text-center py-3 px-2 font-medium text-gray-900">Segments</th>
-                          <th className="text-center py-3 px-2 font-medium text-gray-900">Total Length (m)</th>
-                          <th className="text-center py-3 px-2 font-medium text-gray-900">Concrete (m³)</th>
-                          <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 40 (kg)</th>
-                          <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 60 (kg)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {floor.beamBreakdown.map((beam) => (
-                          <tr key={beam.beamId} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-3 px-2 font-medium text-blue-600">{beam.beamId}</td>
-                            <td className="py-3 px-2 text-center text-sm text-gray-600">
-                              {beam.segments.join(', ')}
-                            </td>
-                            <td className="py-3 px-2 text-center font-mono">{beam.totalLength.toFixed(1)}</td>
-                            <td className="py-3 px-2 text-center font-mono">{beam.concreteVolume.toFixed(2)}</td>
-                            <td className="py-3 px-2 text-center font-mono text-orange-600">
-                              {beam.grade40Steel.toFixed(0)}
-                            </td>
-                            <td className="py-3 px-2 text-center font-mono text-red-600">
-                              {beam.grade60Steel.toFixed(0)}
-                            </td>
+                {floor.beamBreakdown.length > 0 && (
+                  <div className="mb-6">
+                    <h5 className="text-lg font-semibold text-gray-900 mb-3">Beams</h5>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-3 px-2 font-medium text-gray-900">Beam ID</th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-900">Segments</th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-900">Total Length (m)</th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-900">Concrete (m³)</th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 40 (kg)</th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 60 (kg)</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {floor.beamBreakdown.map((beam) => (
+                            <tr key={beam.beamId} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-3 px-2 font-medium text-blue-600">{beam.beamId}</td>
+                              <td className="py-3 px-2 text-center text-sm text-gray-600">
+                                {beam.segments.join(', ')}
+                              </td>
+                              <td className="py-3 px-2 text-center font-mono">{beam.totalLength.toFixed(1)}</td>
+                              <td className="py-3 px-2 text-center font-mono">{beam.concreteVolume.toFixed(2)}</td>
+                              <td className="py-3 px-2 text-center font-mono text-orange-600">
+                                {beam.grade40Steel.toFixed(0)}
+                              </td>
+                              <td className="py-3 px-2 text-center font-mono text-red-600">
+                                {beam.grade60Steel.toFixed(0)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Column Details */}
                 {floor.columnBreakdown.length > 0 && (
