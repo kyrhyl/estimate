@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { GridLine } from "../../components/structural/utils";
+import SlabAssignmentTab from "../../components/structural/SlabAssignmentTab";
 
 // BeamSpec type definition
 type BeamSpec = {
@@ -28,6 +30,36 @@ type ColumnSpec = {
   tieSpacing: number; // spacing in meters
 };
 
+// SlabSpec type definition (pure specifications)
+type SlabSpec = {
+  id: string;
+  thickness: number; // slab thickness in mm
+  type: 'one-way' | 'two-way';
+  // Main reinforcement (spanning direction for one-way, both directions for two-way)
+  mainBarSize: number;
+  mainBarSpacing: number; // spacing in mm
+  // Distribution bars (perpendicular to main bars)
+  distributionBarSize: number;
+  distributionBarSpacing: number; // spacing in mm
+  // Temperature reinforcement (top layer)
+  temperatureBarSize: number;
+  temperatureBarSpacing: number; // spacing in mm
+  // Additional top reinforcement if needed
+  topBarSize: number | null;
+  topBarSpacing: number | null; // spacing in mm
+};
+
+// SlabAssignment type definition (spatial mapping)
+type SlabAssignment = {
+  id: string;
+  slabSpecId: string; // references SlabSpec.id
+  startRow: string; // starting row label (e.g., 'A')
+  endRow: string; // ending row label (e.g., 'B')
+  startCol: string; // starting column label (e.g., '1')
+  endCol: string; // ending column label (e.g., '2')
+  area: number; // calculated area in m²
+};
+
 // Multi-floor data structures
 type GridSystem = {
   numCols: number;
@@ -43,6 +75,8 @@ type Floor = {
   gridSystem: GridSystem;
   beamSpecs: BeamSpec[];
   columnSpecs: ColumnSpec[];
+  slabSpecs?: SlabSpec[];
+  slabAssignments?: SlabAssignment[];
   colBeamIds: string[];
   rowBeamIds: string[];
   columnIds: string[]; // grid intersection assignments
@@ -122,6 +156,10 @@ export default function GridPage() {
           { id: "C2", width: 0.5, depth: 0.5, height: 3.0, mainBarSize: 20, mainBarQty: 12, tieSize: 10, tieSpacing: 0.15 },
           { id: "C3", width: 0.3, depth: 0.3, height: 3.0, mainBarSize: 12, mainBarQty: 6, tieSize: 8, tieSpacing: 0.2 },
         ],
+        slabSpecs: [
+          { id: "S1", thickness: 125, type: "two-way", mainBarSize: 12, mainBarSpacing: 150, distributionBarSize: 8, distributionBarSpacing: 250, temperatureBarSize: 8, temperatureBarSpacing: 150, topBarSize: null, topBarSpacing: null },
+        ],
+        slabAssignments: [],
         colBeamIds: Array(3 * 3).fill(""),
         rowBeamIds: Array(4 * 2).fill(""),
         columnIds: Array(4 * 3).fill(""), // grid intersections
@@ -138,6 +176,8 @@ export default function GridPage() {
   const rows = currentFloor.gridSystem.rows;
   const beamSpecs = currentFloor.beamSpecs;
   const columnSpecs = currentFloor.columnSpecs;
+  const slabSpecs = currentFloor.slabSpecs || [];
+  const slabAssignments = currentFloor.slabAssignments || [];
   const colBeamIds = currentFloor.colBeamIds;
   const rowBeamIds = currentFloor.rowBeamIds;
   const columnIds = currentFloor.columnIds;
@@ -230,6 +270,14 @@ export default function GridPage() {
     updateCurrentFloor({ beamSpecs: newSpecs });
   };
 
+  const setSlabSpecs = (newSpecs: SlabSpec[]) => {
+    updateCurrentFloor({ slabSpecs: newSpecs });
+  };
+
+  const setSlabAssignments = (newAssignments: SlabAssignment[]) => {
+    updateCurrentFloor({ slabAssignments: newAssignments });
+  };
+
   const setColBeamIds = (newIds: string[]) => {
     updateCurrentFloor({ colBeamIds: newIds });
   };
@@ -238,7 +286,7 @@ export default function GridPage() {
     updateCurrentFloor({ rowBeamIds: newIds });
   };
 
-  const setCols = (newCols: Array<{ label: string; position: number }>) => {
+  const setCols = (newCols: GridLine[]) => {
     updateCurrentFloor({
       gridSystem: {
         ...currentFloor.gridSystem,
@@ -247,7 +295,7 @@ export default function GridPage() {
     });
   };
 
-  const setRows = (newRows: Array<{ label: string; position: number }>) => {
+  const setRows = (newRows: GridLine[]) => {
     updateCurrentFloor({
       gridSystem: {
         ...currentFloor.gridSystem,
@@ -506,7 +554,11 @@ export default function GridPage() {
   // Grid modification handlers
   const handleColChange = (idx: number, field: "label" | "position", value: string | number) => {
     const updated = [...cols];
-    (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
+    if (field === "position") {
+      updated[idx].position = Number(value);
+    } else {
+      updated[idx].label = value as string;
+    }
     setCols(updated);
     // Ensure colBeamIds and rowBeamIds stay in sync with grid size
     const newColBeamIds = [...colBeamIds];
@@ -522,7 +574,11 @@ export default function GridPage() {
 
   const handleRowChange = (idx: number, field: "label" | "position", value: string | number) => {
     const updated = [...rows];
-    (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
+    if (field === "position") {
+      updated[idx].position = Number(value);
+    } else {
+      updated[idx].label = value as string;
+    }
     setRows(updated);
     // Ensure colBeamIds and rowBeamIds stay in sync with grid size
     const newColBeamIds = [...colBeamIds];
@@ -1682,6 +1738,20 @@ export default function GridPage() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Slab Assignment Section */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Slab Assignment</h3>
+              <p className="text-gray-600 mb-4">Assign slab types to grid areas</p>
+              
+              <SlabAssignmentTab
+                slabAssignments={slabAssignments}
+                setSlabAssignments={setSlabAssignments}
+                slabSpecs={slabSpecs}
+                rows={rows}
+                cols={cols}
+              />
             </div>
           </div>
         )}

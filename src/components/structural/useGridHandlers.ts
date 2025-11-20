@@ -16,7 +16,11 @@ export const useGridHandlers = (
   // Grid modification handlers
   const handleColChange = useCallback((idx: number, field: "label" | "position", value: string | number) => {
     const updated = cols.map(c => ({ ...c }));
-    (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
+    if (field === "position") {
+      updated[idx].position = Number(value);
+    } else {
+      updated[idx].label = value as string;
+    }
     setCols(updated);
     // Ensure colBeamIds and rowBeamIds stay in sync with grid size
     const newColBeamIds = [...colBeamIds];
@@ -27,7 +31,11 @@ export const useGridHandlers = (
 
   const handleRowChange = useCallback((idx: number, field: "label" | "position", value: string | number) => {
     const updated = rows.map(r => ({ ...r }));
-    (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
+    if (field === "position") {
+      updated[idx].position = Number(value);
+    } else {
+      updated[idx].label = value as string;
+    }
     setRows(updated);
     // Ensure rowBeamIds stay in sync with grid size
     const newRowBeamIds = [...rowBeamIds];

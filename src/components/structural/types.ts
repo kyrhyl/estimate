@@ -110,6 +110,14 @@ export type BuildingSummary = {
       grade40Steel: number;
       grade60Steel: number;
     }[];
+    slabBreakdown: {
+      slabId: string;
+      areas: string[];
+      totalArea: number;
+      concreteVolume: number;
+      grade40Steel: number;
+      grade60Steel: number;
+    }[];
   }[];
 };
 

@@ -1,5 +1,6 @@
-import { BeamSpec, ColumnSpec, Floor } from './types';
+import { BeamSpec, ColumnSpec, Floor, SlabSpec, SlabAssignment } from './types';
 import { calculateReinforcementWeights, calculateColumnReinforcementWeights } from './utils';
+import SlabAssignmentTab from './SlabAssignmentTab';
 
 interface GridTabProps {
   numCols: number;
@@ -11,6 +12,9 @@ interface GridTabProps {
   columnIds: string[];
   beamSpecs: BeamSpec[];
   columnSpecs: ColumnSpec[];
+  slabSpecs?: SlabSpec[];
+  slabAssignments?: SlabAssignment[];
+  setSlabAssignments?: (assignments: SlabAssignment[]) => void;
   handleNumColsChange: (newNumCols: number) => void;
   handleNumRowsChange: (newNumRows: number) => void;
   handleColChange: (idx: number, field: "label" | "position", value: string | number) => void;
@@ -30,6 +34,9 @@ export default function GridTab({
   columnIds,
   beamSpecs,
   columnSpecs,
+  slabSpecs = [],
+  slabAssignments = [],
+  setSlabAssignments,
   handleNumColsChange,
   handleNumRowsChange,
   handleColChange,
@@ -544,6 +551,22 @@ export default function GridTab({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Slab Assignment Section */}
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4">Slab Assignment</h3>
+        <p className="text-gray-600 mb-4">Assign slab types to grid areas</p>
+
+        {setSlabAssignments && (
+          <SlabAssignmentTab
+            slabAssignments={slabAssignments}
+            setSlabAssignments={setSlabAssignments}
+            slabSpecs={slabSpecs}
+            rows={rows}
+            cols={cols}
+          />
+        )}
       </div>
     </div>
   );

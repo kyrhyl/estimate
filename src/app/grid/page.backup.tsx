@@ -1,7 +1,7 @@
 // Backup of working grid page as of 2025-11-18
 "use client";
 import { useState } from "react";
-// ...existing code...
+import { GridLine } from "../../components/structural/utils";
 
 export default function GridPage() {
     // Handler to update number of columns
@@ -55,12 +55,20 @@ export default function GridPage() {
 
   const handleColChange = (idx: number, field: "label" | "position", value: string | number) => {
     const updated = [...cols];
-    (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
+    if (field === "position") {
+      updated[idx].position = Number(value);
+    } else {
+      updated[idx].label = value as string;
+    }
     setCols(updated);
   };
   const handleRowChange = (idx: number, field: "label" | "position", value: string | number) => {
     const updated = [...rows];
-    (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
+    if (field === "position") {
+      updated[idx].position = Number(value);
+    } else {
+      updated[idx].label = value as string;
+    }
     setRows(updated);
   };
 

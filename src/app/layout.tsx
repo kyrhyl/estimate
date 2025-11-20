@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,9 +31,9 @@ export default function RootLayout({
             Quantity Estimate
           </div>
           <div className="flex gap-6">
-            <a href="/" className="hover:underline">Home</a>
-            <a href="/structural" className="hover:underline">Structural</a>
-            <a href="/estimates" className="hover:underline">Estimates</a>
+            <Link href="/" className="hover:underline">Home</Link>
+            <Link href="/structural" className="hover:underline">Structural</Link>
+            <Link href="/estimates" className="hover:underline">Estimates</Link>
           </div>
         </nav>
         <div className="pt-4">{children}</div>

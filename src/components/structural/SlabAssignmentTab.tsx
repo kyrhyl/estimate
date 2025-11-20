@@ -42,7 +42,29 @@ export default function SlabAssignmentTab({
 
   const assignedAreas = getAssignedAreas();
 
-  // Drag and drop handlers
+  // Handle cell click to clear assignment
+  const handleCellClick = (cellKey: string) => {
+    const slabSpecId = assignedAreas[cellKey];
+    if (!slabSpecId) return; // No assignment to clear
+
+    // Find the assignment that covers this cell
+    const assignmentToRemove = slabAssignments.find(assignment => {
+      const startRowIdx = rows.findIndex(r => r.label === assignment.startRow);
+      const endRowIdx = rows.findIndex(r => r.label === assignment.endRow);
+      const startColIdx = cols.findIndex(c => c.label === assignment.startCol);
+      const endColIdx = cols.findIndex(c => c.label === assignment.endCol);
+      const cellRowIdx = rows.findIndex(r => r.label === cellKey.charAt(0));
+      const cellColIdx = cols.findIndex(c => c.label === cellKey.substring(1));
+
+      return cellRowIdx >= startRowIdx && cellRowIdx <= endRowIdx &&
+             cellColIdx >= startColIdx && cellColIdx <= endColIdx;
+    });
+
+    if (assignmentToRemove) {
+      const newAssignments = slabAssignments.filter(assignment => assignment.id !== assignmentToRemove.id);
+      setSlabAssignments(newAssignments);
+    }
+  };
   const handleDragStart = (e: React.DragEvent, slabSpecId: string) => {
     e.dataTransfer.setData('text/plain', slabSpecId);
     e.dataTransfer.effectAllowed = 'copy';
@@ -105,7 +127,7 @@ export default function SlabAssignmentTab({
       {/* Slab Assignment Section */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Slab Assignment</h2>
-        <p className="text-gray-600">Drag slab specifications onto grid areas to assign them</p>
+        <p className="text-gray-600">Drag slab specifications onto grid areas to assign them. Click assigned cells to clear assignments.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-4">
@@ -170,14 +192,15 @@ export default function SlabAssignmentTab({
                     return (
                       <div
                         key={cellKey}
+                        onClick={() => handleCellClick(cellKey)}
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, cellKey)}
                         className={`w-16 h-16 border-2 flex items-center justify-center text-xs font-medium transition-all duration-200 ${
                           slabSpecId
-                            ? `bg-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-100 border-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-300 text-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-800 hover:bg-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-200`
+                            ? `bg-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-100 border-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-300 text-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-800 hover:bg-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-200 cursor-pointer`
                             : 'bg-gray-50 border-gray-200 border-dashed text-gray-400 hover:bg-gray-100 hover:border-gray-300'
                         }`}
-                        title={slabSpec ? `${slabSpec.id} (${slabSpec.type})` : 'Drop slab spec here'}
+                        title={slabSpec ? `${slabSpec.id} (${slabSpec.type}) - Click to clear` : 'Drop slab spec here'}
                       >
                         {slabSpecId || '+'}
                       </div>
@@ -196,11 +219,11 @@ export default function SlabAssignmentTab({
             </div>
             <div className="flex items-center">
               <div className="w-4 h-4 bg-blue-100 border-2 border-blue-300 mr-2"></div>
-              <span>One-Way Slab</span>
+              <span>One-Way Slab (click to clear)</span>
             </div>
             <div className="flex items-center">
               <div className="w-4 h-4 bg-purple-100 border-2 border-purple-300 mr-2"></div>
-              <span>Two-Way Slab</span>
+              <span>Two-Way Slab (click to clear)</span>
             </div>
           </div>
         </div>

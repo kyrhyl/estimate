@@ -81,7 +81,8 @@ const mockSummary = {
           grade40Steel: 2299.5,
           grade60Steel: 1646.5
         }
-      ]
+      ],
+      slabBreakdown: []
     }
   ]
 }

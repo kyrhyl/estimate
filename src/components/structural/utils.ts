@@ -9,7 +9,7 @@ export const BAR_WEIGHTS: { [key: number]: number } = {
   10: 0.617,  // 10mm = 0.617 kg/m
   12: 0.888,  // 12mm = 0.888 kg/m
   16: 1.578,  // 16mm = 1.578 kg/m
-  20: 2.466,  // 20mm = 0.617 kg/m
+  20: 2.466,  // 20mm = 2.466 kg/m
   25: 3.853,  // 25mm = 3.853 kg/m
   32: 6.313   // 32mm = 6.313 kg/m
 };
@@ -231,6 +231,43 @@ export const calculateBuildingSummary = (building: Building): BuildingSummary =>
       }
     });
     
+    // Add slab calculations
+    const slabBreakdown: BuildingSummary['floorBreakdown'][0]['slabBreakdown'] = [];
+    if (floor.slabAssignments && floor.slabSpecs) {
+      const slabSummaryMap = new Map();
+      floor.slabAssignments.forEach((assignment) => {
+        if (!slabSummaryMap.has(assignment.slabSpecId)) {
+          slabSummaryMap.set(assignment.slabSpecId, { areas: [], totalArea: 0 });
+        }
+        const summary = slabSummaryMap.get(assignment.slabSpecId);
+        summary.areas.push(`${assignment.startRow}${assignment.startCol}-${assignment.endRow}${assignment.endCol}`);
+        summary.totalArea += assignment.area;
+      });
+      
+      slabSummaryMap.forEach((summary, slabId) => {
+        const slab = floor.slabSpecs!.find(s => s.id === slabId);
+        if (slab) {
+          const slabConcreteVolume = calculateSlabConcreteVolume(slab, summary.totalArea);
+          const weights = calculateSlabReinforcementWeights(slab);
+          const slabGrade40Steel = weights.grade40Weight * summary.totalArea;
+          const slabGrade60Steel = weights.grade60Weight * summary.totalArea;
+          
+          floorConcreteVolume += slabConcreteVolume;
+          floorGrade40Steel += slabGrade40Steel;
+          floorGrade60Steel += slabGrade60Steel;
+          
+          slabBreakdown.push({
+            slabId,
+            areas: summary.areas,
+            totalArea: summary.totalArea,
+            concreteVolume: slabConcreteVolume,
+            grade40Steel: slabGrade40Steel,
+            grade60Steel: slabGrade60Steel,
+          });
+        }
+      });
+    }
+    
     totalConcreteVolume += floorConcreteVolume;
     totalGrade40Steel += floorGrade40Steel;
     totalGrade60Steel += floorGrade60Steel;
@@ -243,6 +280,7 @@ export const calculateBuildingSummary = (building: Building): BuildingSummary =>
       grade60Steel: floorGrade60Steel,
       beamBreakdown,
       columnBreakdown,
+      slabBreakdown,
     });
   });
   

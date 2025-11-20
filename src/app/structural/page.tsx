@@ -8,6 +8,7 @@ import TabNavigation from "../../components/structural/TabNavigation";
 import BeamTab from "../../components/structural/BeamTab";
 import ColumnTab from "../../components/structural/ColumnTab";
 import SlabTab from "../../components/structural/SlabTab";
+import SlabAssignmentTab from "../../components/structural/SlabAssignmentTab";
 import GridTab from "../../components/structural/GridTab";
 import SummaryTab from "../../components/structural/SummaryTab";
 
@@ -25,6 +26,7 @@ export default function StructuralPage() {
     setBeamSpecs,
     setColumnSpecs,
     setSlabSpecs,
+    setSlabAssignments,
     setColBeamIds,
     setRowBeamIds,
     setColumnIds,
@@ -140,6 +142,9 @@ export default function StructuralPage() {
             columnIds={columnIds}
             beamSpecs={beamSpecs}
             columnSpecs={columnSpecs}
+            slabSpecs={currentFloor.slabSpecs || []}
+            slabAssignments={currentFloor.slabAssignments || []}
+            setSlabAssignments={setSlabAssignments}
             handleNumColsChange={handleNumColsChange}
             handleNumRowsChange={handleNumRowsChange}
             handleColChange={handleColChange}
