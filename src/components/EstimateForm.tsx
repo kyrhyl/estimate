@@ -53,86 +53,91 @@ export default function EstimateForm() {
   };
 
   return (
-    <form
-      className="flex flex-col gap-4 w-full max-w-lg"
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleCalculate();
-      }}
-    >
-      <label className="font-medium">Major Group</label>
-      <select
-        className="border rounded px-3 py-2"
-        value={selectedGroup}
-        onChange={(e) => {
-          setSelectedGroup(e.target.value);
-          setSelectedBreakdown("");
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Quantity Estimation Tool</h1>
+      <form
+        className="flex flex-col gap-4 w-full max-w-lg"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleCalculate();
         }}
-        required
       >
-        <option value="">Select group</option>
-        {wbs.map((g) => (
-          <option key={g.group} value={g.group}>
-            {g.group}
-          </option>
-        ))}
-      </select>
-      {selectedGroup && (
-        <>
-          <label className="font-medium">Breakdown</label>
-          <select
-            className="border rounded px-3 py-2"
-            value={selectedBreakdown}
-            onChange={(e) => setSelectedBreakdown(e.target.value)}
-            required
-          >
-            <option value="">Select breakdown</option>
-            {wbs
-              .find((g) => g.group === selectedGroup)
-              ?.breakdowns.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-          </select>
-        </>
-      )}
-      {selectedBreakdown && (
-        <>
-          <label className="font-medium">Parameter (e.g., area, volume, quantity)</label>
-          <input
-            type="number"
-            className="border rounded px-3 py-2"
-            value={param}
-            onChange={(e) => setParam(e.target.value)}
-            placeholder="Enter value"
-            required
-          />
-          <button
-            type="submit"
-            className="bg-black text-white rounded px-4 py-2 mt-2 hover:bg-zinc-800"
-          >
-            Calculate
-          </button>
-        </>
-      )}
-      {result && (
-        <div className="mt-8 p-4 border rounded bg-zinc-100 dark:bg-zinc-900 text-black dark:text-zinc-50 whitespace-pre-line">
-          <strong>Result:</strong>
-          <br />
-          {result}
-          <button
-            className="bg-green-600 text-white rounded px-4 py-2 mt-4 hover:bg-green-700"
-            onClick={handleSave}
-            type="button"
-          >
-            Save Estimate
-          </button>
-          {saveStatus && (
-            <div className="mt-2 text-sm text-green-700 dark:text-green-400">{saveStatus}</div>
-          )}
-        </div>
-      )}
-    </form>
+        <label htmlFor="major-group" className="font-medium">Major Group</label>
+        <select
+          id="major-group"
+          className="border rounded px-3 py-2"
+          value={selectedGroup}
+          onChange={(e) => {
+            setSelectedGroup(e.target.value);
+            setSelectedBreakdown("");
+          }}
+          required
+        >
+          <option value="">Select group</option>
+          {wbs.map((g) => (
+            <option key={g.group} value={g.group}>
+              {g.group}
+            </option>
+          ))}
+        </select>
+        {selectedGroup && (
+          <>
+            <label htmlFor="breakdown" className="font-medium">Breakdown</label>
+            <select
+              id="breakdown"
+              className="border rounded px-3 py-2"
+              value={selectedBreakdown}
+              onChange={(e) => setSelectedBreakdown(e.target.value)}
+              required
+            >
+              <option value="">Select breakdown</option>
+              {wbs
+                .find((g) => g.group === selectedGroup)
+                ?.breakdowns.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+            </select>
+          </>
+        )}
+        {selectedBreakdown && (
+          <>
+            <label htmlFor="parameter" className="font-medium">Parameter (e.g., area, volume, quantity)</label>
+            <input
+              id="parameter"
+              type="number"
+              className="border rounded px-3 py-2"
+              value={param}
+              onChange={(e) => setParam(e.target.value)}
+              placeholder="Enter value"
+            />
+            <button
+              type="submit"
+              className="bg-black text-white rounded px-4 py-2 mt-2 hover:bg-zinc-800"
+            >
+              Calculate
+            </button>
+          </>
+        )}
+        {result && (
+          <div className="mt-8 p-4 border rounded bg-zinc-100 dark:bg-zinc-900 text-black dark:text-zinc-50 whitespace-pre-line">
+            <strong>Result:</strong>
+            <br />
+            {result}
+            <button
+              className="bg-green-600 text-white rounded px-4 py-2 mt-4 hover:bg-green-700"
+              onClick={handleSave}
+              type="button"
+            >
+              Save Estimate
+            </button>
+            {saveStatus && (
+              <div className="mt-2 text-sm text-green-700 dark:text-green-400">{saveStatus}</div>
+            )}
+          </div>
+        )}
+      </form>
+    </div>
   );
 }

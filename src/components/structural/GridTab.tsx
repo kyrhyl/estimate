@@ -40,16 +40,16 @@ export default function GridTab({
 }: GridTabProps) {
   // Calculate lengths between adjacent columns for each row
   const colLengths: { row: string, from: string, to: string, length: number, beamId: string, segment: string }[] = [];
-  if (cols.length > 1) {
+  if (cols && cols.length > 1 && rows && rows.length > 0) {
     for (let r = 0; r < rows.length; r++) {
       for (let c = 1; c < cols.length; c++) {
         colLengths.push({
-          row: rows[r].label,
-          from: cols[c - 1].label,
-          to: cols[c].label,
-          length: Math.abs(cols[c].position - cols[c - 1].position),
+          row: rows[r]?.label || '',
+          from: cols[c - 1]?.label || '',
+          to: cols[c]?.label || '',
+          length: Math.abs((cols[c]?.position || 0) - (cols[c - 1]?.position || 0)),
           beamId: colBeamIds[(r * (cols.length - 1)) + (c - 1)] || "",
-          segment: `${rows[r].label}${cols[c - 1].label}-${rows[r].label}${cols[c].label}`,
+          segment: `${rows[r]?.label || ''}${cols[c - 1]?.label || ''}-${rows[r]?.label || ''}${cols[c]?.label || ''}`,
         });
       }
     }
@@ -57,16 +57,16 @@ export default function GridTab({
 
   // Calculate lengths between adjacent rows for each column
   const rowLengths: { col: string, from: string, to: string, length: number, beamId: string, segment: string }[] = [];
-  if (rows.length > 1) {
+  if (rows && rows.length > 1 && cols && cols.length > 0) {
     for (let c = 0; c < cols.length; c++) {
       for (let r = 1; r < rows.length; r++) {
         rowLengths.push({
-          col: cols[c].label,
-          from: rows[r - 1].label,
-          to: rows[r].label,
-          length: Math.abs(rows[r].position - rows[r - 1].position),
+          col: cols[c]?.label || '',
+          from: rows[r - 1]?.label || '',
+          to: rows[r]?.label || '',
+          length: Math.abs((rows[r]?.position || 0) - (rows[r - 1]?.position || 0)),
           beamId: rowBeamIds[(c * (rows.length - 1)) + (r - 1)] || "",
-          segment: `${rows[r - 1].label}${cols[c].label}-${rows[r].label}${cols[c].label}`,
+          segment: `${rows[r - 1]?.label || ''}${cols[c]?.label || ''}-${rows[r]?.label || ''}${cols[c]?.label || ''}`,
         });
       }
     }
@@ -522,7 +522,7 @@ export default function GridTab({
                 return (
                   <div key={`${r}-${c}`} className="flex flex-col items-center space-y-2">
                     <div className="text-sm font-medium text-gray-700">
-                      {rows[r].label}{cols[c].label}
+                      {rows[r]?.label || 'Unknown'}{cols[c]?.label || 'Unknown'}
                     </div>
                     <select
                       value={columnIds[index] || ""}

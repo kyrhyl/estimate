@@ -33,6 +33,9 @@ export const defaultBuilding: Building = {
         { id: "C2", width: 0.5, depth: 0.5, height: 3.0, mainBarSize: 20, mainBarQty: 12, tieSize: 10, tieSpacing: 0.15 },
         { id: "C3", width: 0.3, depth: 0.3, height: 3.0, mainBarSize: 12, mainBarQty: 6, tieSize: 8, tieSpacing: 0.2 },
       ],
+      slabSpecs: [
+        { id: "S1", thickness: 125, type: "two-way", spanLength: 6, spanWidth: 4, mainBarSize: 12, mainBarSpacing: 150, distributionBarSize: 8, distributionBarSpacing: 250, temperatureBarSize: 8, temperatureBarSpacing: 150, topBarSize: null, topBarSpacing: null },
+      ],
       colBeamIds: Array(3 * 3).fill(""),
       rowBeamIds: Array(4 * 2).fill(""),
       columnIds: Array(4 * 3).fill(""), // grid intersections

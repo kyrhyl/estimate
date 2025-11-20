@@ -33,6 +33,7 @@ export const useBuildingState = () => {
       },
       beamSpecs: [...building.floors[0].beamSpecs], // Copy beam specs
       columnSpecs: [...building.floors[0].columnSpecs], // Copy column specs
+      slabSpecs: building.floors[0].slabSpecs ? [...building.floors[0].slabSpecs] : [], // Copy slab specs
       colBeamIds: Array(building.floors[0].structuralSystem.numRows * (building.floors[0].structuralSystem.numCols - 1)).fill(""),
       rowBeamIds: Array(building.floors[0].structuralSystem.numCols * (building.floors[0].structuralSystem.numRows - 1)).fill(""),
       columnIds: Array(building.floors[0].structuralSystem.numCols * building.floors[0].structuralSystem.numRows).fill(""),
@@ -88,6 +89,7 @@ export const useBuildingState = () => {
       structuralSystem: {
         ...currentFloor.structuralSystem,
         cols: newCols,
+        numCols: newCols.length,
       },
     });
   }, [updateCurrentFloor, currentFloor.structuralSystem]);
@@ -97,6 +99,7 @@ export const useBuildingState = () => {
       structuralSystem: {
         ...currentFloor.structuralSystem,
         rows: newRows,
+        numRows: newRows.length,
       },
     });
   }, [updateCurrentFloor, currentFloor.structuralSystem]);
@@ -115,5 +118,6 @@ export const useBuildingState = () => {
     setColumnIds,
     setCols,
     setRows,
+    updateCurrentFloor,
   };
 };

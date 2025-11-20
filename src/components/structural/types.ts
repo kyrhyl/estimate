@@ -25,6 +25,28 @@ export type ColumnSpec = {
   tieSpacing: number; // spacing in meters
 };
 
+// SlabSpec type definition
+export type SlabSpec = {
+  id: string;
+  thickness: number; // slab thickness in mm
+  type: 'one-way' | 'two-way';
+  // Span dimensions for design calculations
+  spanLength: number; // longer span in meters (for one-way) or both directions (for two-way)
+  spanWidth: number; // shorter span in meters (for one-way) or perpendicular direction (for two-way)
+  // Main reinforcement (spanning direction for one-way, both directions for two-way)
+  mainBarSize: number;
+  mainBarSpacing: number; // spacing in mm
+  // Distribution bars (perpendicular to main bars)
+  distributionBarSize: number;
+  distributionBarSpacing: number; // spacing in mm
+  // Temperature reinforcement (top layer)
+  temperatureBarSize: number;
+  temperatureBarSpacing: number; // spacing in mm
+  // Additional top reinforcement if needed
+  topBarSize: number | null;
+  topBarSpacing: number | null; // spacing in mm
+};
+
 // Multi-floor data structures
 export type StructuralSystem = {
   numCols: number;
@@ -40,6 +62,7 @@ export type Floor = {
   structuralSystem: StructuralSystem;
   beamSpecs: BeamSpec[];
   columnSpecs: ColumnSpec[];
+  slabSpecs?: SlabSpec[];
   colBeamIds: string[];
   rowBeamIds: string[];
   columnIds: string[]; // grid intersection assignments

@@ -28,6 +28,7 @@ export default function StructuralPage() {
     setColumnIds,
     setCols,
     setRows,
+    updateCurrentFloor,
   } = useBuildingState();
 
   // Grid handlers
@@ -119,7 +120,7 @@ export default function StructuralPage() {
         )}
 
         {activeTab === 'columns' && (
-          <ColumnTab columnSpecs={columnSpecs} updateCurrentFloor={(updates) => {}} />
+          <ColumnTab columnSpecs={columnSpecs} updateCurrentFloor={updateCurrentFloor} />
         )}
 
         {activeTab === 'grid' && (
@@ -139,7 +140,7 @@ export default function StructuralPage() {
             handleRowChange={handleRowChange}
             setColBeamIds={setColBeamIds}
             setRowBeamIds={setRowBeamIds}
-            updateCurrentFloor={(updates) => {}}
+            updateCurrentFloor={updateCurrentFloor}
           />
         )}
 

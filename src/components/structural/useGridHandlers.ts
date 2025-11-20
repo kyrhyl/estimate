@@ -15,7 +15,7 @@ export const useGridHandlers = (
 
   // Grid modification handlers
   const handleColChange = useCallback((idx: number, field: "label" | "position", value: string | number) => {
-    const updated = [...cols];
+    const updated = cols.map(c => ({ ...c }));
     (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
     setCols(updated);
     // Ensure colBeamIds and rowBeamIds stay in sync with grid size
@@ -26,7 +26,7 @@ export const useGridHandlers = (
   }, [cols, numRows, setCols, setColBeamIds, colBeamIds]);
 
   const handleRowChange = useCallback((idx: number, field: "label" | "position", value: string | number) => {
-    const updated = [...rows];
+    const updated = rows.map(r => ({ ...r }));
     (updated[idx] as any)[field] = field === "position" ? Number(value) : value;
     setRows(updated);
     // Ensure rowBeamIds stay in sync with grid size
@@ -40,7 +40,7 @@ export const useGridHandlers = (
     if (newNumCols < 2 || newNumCols > 10) return;
 
     const currentCols = cols.length;
-    let newCols = [...cols];
+    let newCols = cols.map(c => ({ ...c }));
 
     if (newNumCols > currentCols) {
       // Add columns
@@ -65,13 +65,13 @@ export const useGridHandlers = (
     if (newNumRows < 2 || newNumRows > 10) return;
 
     const currentRows = rows.length;
-    let newRows = [...rows];
+    let newRows = rows.map(r => ({ ...r }));
 
     if (newNumRows > currentRows) {
       // Add rows
       for (let i = currentRows; i < newNumRows; i++) {
         const position = i * 4; // Default spacing
-        newRows.push({ label: String.fromCharCode(65 + i), position }); // A, B, C, etc.
+        newRows.push({ label: String.fromCharCode(65 + i), position });
       }
     } else if (newNumRows < currentRows) {
       // Remove rows
