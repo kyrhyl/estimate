@@ -13,7 +13,8 @@ describe('TabNavigation', () => {
 
     expect(screen.getByText('Beam Specifications')).toBeInTheDocument()
     expect(screen.getByText('Column Specifications')).toBeInTheDocument()
-    expect(screen.getByText('Grid System & Assignment')).toBeInTheDocument()
+    expect(screen.getByText('Slab Specifications')).toBeInTheDocument()
+    expect(screen.getByText('Grid System')).toBeInTheDocument()
     expect(screen.getByText('Building Summary')).toBeInTheDocument()
   })
 
@@ -30,7 +31,7 @@ describe('TabNavigation', () => {
   it('calls onTabChange when a tab is clicked', () => {
     render(<TabNavigation activeTab="beams" onTabChange={mockOnTabChange} />)
 
-    const gridTab = screen.getByText('Grid System & Assignment')
+    const gridTab = screen.getByText('Grid System')
     fireEvent.click(gridTab)
 
     expect(mockOnTabChange).toHaveBeenCalledWith('grid')
@@ -46,7 +47,10 @@ describe('TabNavigation', () => {
     fireEvent.click(screen.getByText('Column Specifications'))
     expect(mockOnTabChange).toHaveBeenLastCalledWith('columns')
 
-    fireEvent.click(screen.getByText('Grid System & Assignment'))
+    fireEvent.click(screen.getByText('Slab Specifications'))
+    expect(mockOnTabChange).toHaveBeenLastCalledWith('slabs')
+
+    fireEvent.click(screen.getByText('Grid System'))
     expect(mockOnTabChange).toHaveBeenLastCalledWith('grid')
 
     fireEvent.click(screen.getByText('Building Summary'))

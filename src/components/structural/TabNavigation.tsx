@@ -1,13 +1,14 @@
 interface TabNavigationProps {
-  activeTab: 'beams' | 'columns' | 'grid' | 'summary';
-  onTabChange: (tab: 'beams' | 'columns' | 'grid' | 'summary') => void;
+  activeTab: 'beams' | 'columns' | 'slabs' | 'grid' | 'summary';
+  onTabChange: (tab: 'beams' | 'columns' | 'slabs' | 'grid' | 'summary') => void;
 }
 
 export default function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
   const tabs = [
     { id: 'beams' as const, label: 'Beam Specifications' },
     { id: 'columns' as const, label: 'Column Specifications' },
-    { id: 'grid' as const, label: 'Grid System & Assignment' },
+    { id: 'slabs' as const, label: 'Slab Specifications' },
+    { id: 'grid' as const, label: 'Grid System' },
     { id: 'summary' as const, label: 'Building Summary' },
   ];
 

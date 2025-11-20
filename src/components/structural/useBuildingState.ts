@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Building, Floor, BeamSpec, ColumnSpec } from './types';
+import { Building, Floor, BeamSpec, ColumnSpec, SlabSpec, SlabAssignment } from './types';
 import { defaultBuilding } from './defaultData';
 
 export const useBuildingState = () => {
@@ -34,6 +34,7 @@ export const useBuildingState = () => {
       beamSpecs: [...building.floors[0].beamSpecs], // Copy beam specs
       columnSpecs: [...building.floors[0].columnSpecs], // Copy column specs
       slabSpecs: building.floors[0].slabSpecs ? [...building.floors[0].slabSpecs] : [], // Copy slab specs
+      slabAssignments: building.floors[0].slabAssignments ? [...building.floors[0].slabAssignments] : [], // Copy slab assignments
       colBeamIds: Array(building.floors[0].structuralSystem.numRows * (building.floors[0].structuralSystem.numCols - 1)).fill(""),
       rowBeamIds: Array(building.floors[0].structuralSystem.numCols * (building.floors[0].structuralSystem.numRows - 1)).fill(""),
       columnIds: Array(building.floors[0].structuralSystem.numCols * building.floors[0].structuralSystem.numRows).fill(""),
@@ -69,6 +70,14 @@ export const useBuildingState = () => {
 
   const setColumnSpecs = useCallback((newSpecs: ColumnSpec[]) => {
     updateCurrentFloor({ columnSpecs: newSpecs });
+  }, [updateCurrentFloor]);
+
+  const setSlabSpecs = useCallback((newSpecs: SlabSpec[]) => {
+    updateCurrentFloor({ slabSpecs: newSpecs });
+  }, [updateCurrentFloor]);
+
+  const setSlabAssignments = useCallback((newAssignments: SlabAssignment[]) => {
+    updateCurrentFloor({ slabAssignments: newAssignments });
   }, [updateCurrentFloor]);
 
   const setColBeamIds = useCallback((newIds: string[]) => {
@@ -113,6 +122,8 @@ export const useBuildingState = () => {
     deleteFloor,
     setBeamSpecs,
     setColumnSpecs,
+    setSlabSpecs,
+    setSlabAssignments,
     setColBeamIds,
     setRowBeamIds,
     setColumnIds,

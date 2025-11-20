@@ -7,11 +7,12 @@ import { useGridHandlers } from "../../components/structural/useGridHandlers";
 import TabNavigation from "../../components/structural/TabNavigation";
 import BeamTab from "../../components/structural/BeamTab";
 import ColumnTab from "../../components/structural/ColumnTab";
+import SlabTab from "../../components/structural/SlabTab";
 import GridTab from "../../components/structural/GridTab";
 import SummaryTab from "../../components/structural/SummaryTab";
 
 export default function StructuralPage() {
-  const [activeTab, setActiveTab] = useState<'beams' | 'columns' | 'grid' | 'summary'>('beams');
+  const [activeTab, setActiveTab] = useState<'beams' | 'columns' | 'slabs' | 'grid' | 'summary'>('beams');
 
   // Use custom hooks for state management
   const {
@@ -23,6 +24,7 @@ export default function StructuralPage() {
     deleteFloor,
     setBeamSpecs,
     setColumnSpecs,
+    setSlabSpecs,
     setColBeamIds,
     setRowBeamIds,
     setColumnIds,
@@ -121,6 +123,10 @@ export default function StructuralPage() {
 
         {activeTab === 'columns' && (
           <ColumnTab columnSpecs={columnSpecs} updateCurrentFloor={updateCurrentFloor} />
+        )}
+
+        {activeTab === 'slabs' && (
+          <SlabTab slabSpecs={currentFloor.slabSpecs || []} setSlabSpecs={setSlabSpecs} />
         )}
 
         {activeTab === 'grid' && (

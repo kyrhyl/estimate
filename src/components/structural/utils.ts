@@ -14,6 +14,14 @@ export const BAR_WEIGHTS: { [key: number]: number } = {
   32: 6.313   // 32mm = 6.313 kg/m
 };
 
+// Format numbers with commas and appropriate decimal places
+export const formatNumber = (value: number, decimals: number = 2): string => {
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+};
+
 // Calculate reinforcement weights per meter for a beam
 export const calculateReinforcementWeights = (beam: BeamSpec): { grade40Weight: number; grade60Weight: number; totalWeight: number } => {
   let grade40Weight = 0; // < 16mm
@@ -326,45 +334,61 @@ export const calculateSlabConcreteVolume = (slab: SlabSpec, area: number): numbe
 };
 
 // Get design recommendations based on slab type and dimensions
-export const getSlabDesignRecommendations = (slab: SlabSpec): {
+export const getSlabDesignRecommendations = (slab: SlabSpec, spanLength?: number, spanWidth?: number): {
   recommendedThickness: number;
   recommendedMainSpacing: number;
   recommendedDistSpacing: number;
   designNotes: string[];
 } => {
-  const aspectRatio = slab.spanLength / slab.spanWidth;
   const notes: string[] = [];
 
   let recommendedThickness = 125; // default
   let recommendedMainSpacing = 150;
   let recommendedDistSpacing = 250;
 
-  if (slab.type === 'one-way') {
-    // One-way slab design
-    if (aspectRatio >= 2) {
-      notes.push("✅ Good aspect ratio for one-way slab design");
-      recommendedThickness = Math.max(100, Math.min(200, slab.spanLength * 30)); // L/30 rule
+  // If span dimensions are provided, use them for recommendations
+  if (spanLength && spanWidth) {
+    const aspectRatio = spanLength / spanWidth;
+
+    if (slab.type === 'one-way') {
+      // One-way slab design
+      if (aspectRatio >= 2) {
+        notes.push("✅ Good aspect ratio for one-way slab design");
+        recommendedThickness = Math.max(100, Math.min(200, spanLength * 30)); // L/30 rule
+      } else {
+        notes.push("⚠️ Aspect ratio < 2, consider two-way design");
+      }
+
+      // Main reinforcement in longer direction
+      recommendedMainSpacing = Math.min(300, Math.max(100, spanLength * 1000 / 5)); // approx 5 bars per span
+      recommendedDistSpacing = Math.min(400, Math.max(150, spanWidth * 1000 / 3)); // fewer bars in short direction
+
     } else {
-      notes.push("⚠️ Aspect ratio < 2, consider two-way design");
+      // Two-way slab design
+      if (aspectRatio <= 2) {
+        notes.push("✅ Good aspect ratio for two-way slab design");
+        recommendedThickness = Math.max(125, Math.min(250, Math.max(spanLength, spanWidth) * 35)); // L/35 rule
+      } else {
+        notes.push("⚠️ High aspect ratio, one-way design may be more economical");
+      }
+
+      // Reinforcement in both directions
+      const maxSpan = Math.max(spanLength, spanWidth);
+      recommendedMainSpacing = Math.min(250, Math.max(125, maxSpan * 1000 / 6)); // approx 6 bars per span
+      recommendedDistSpacing = recommendedMainSpacing; // similar spacing in both directions
     }
-
-    // Main reinforcement in longer direction
-    recommendedMainSpacing = Math.min(300, Math.max(100, slab.spanLength * 1000 / 5)); // approx 5 bars per span
-    recommendedDistSpacing = Math.min(400, Math.max(150, slab.spanWidth * 1000 / 3)); // fewer bars in short direction
-
   } else {
-    // Two-way slab design
-    if (aspectRatio <= 2) {
-      notes.push("✅ Good aspect ratio for two-way slab design");
-      recommendedThickness = Math.max(125, Math.min(250, Math.max(slab.spanLength, slab.spanWidth) * 35)); // L/35 rule
+    // General recommendations without span dimensions
+    notes.push("ℹ️ Span dimensions not provided - using general recommendations");
+    if (slab.type === 'one-way') {
+      recommendedThickness = 125;
+      recommendedMainSpacing = 150;
+      recommendedDistSpacing = 300;
     } else {
-      notes.push("⚠️ High aspect ratio, one-way design may be more economical");
+      recommendedThickness = 150;
+      recommendedMainSpacing = 150;
+      recommendedDistSpacing = 200;
     }
-
-    // Reinforcement in both directions
-    const maxSpan = Math.max(slab.spanLength, slab.spanWidth);
-    recommendedMainSpacing = Math.min(250, Math.max(125, maxSpan * 1000 / 6)); // approx 6 bars per span
-    recommendedDistSpacing = recommendedMainSpacing; // similar spacing in both directions
   }
 
   // Thickness validation
@@ -379,5 +403,199 @@ export const getSlabDesignRecommendations = (slab: SlabSpec): {
     recommendedMainSpacing,
     recommendedDistSpacing,
     designNotes: notes
+  };
+};
+
+// Grid area calculation types
+export type GridLine = { label: string; position: number };
+
+export type AreaCalculationResult = {
+  area: number;
+  width: number;
+  length: number;
+  isValid: boolean;
+  error?: string;
+};
+
+/**
+ * Comprehensive area calculation for grid-based slab assignments
+ * Handles single cells, spans, and edge cases with proper validation
+ */
+export const calculateGridArea = (
+  startRow: string,
+  endRow: string,
+  startCol: string,
+  endCol: string,
+  rows: GridLine[],
+  cols: GridLine[]
+): AreaCalculationResult => {
+  // Input validation
+  if (!rows || rows.length === 0 || !cols || cols.length === 0) {
+    return {
+      area: 0,
+      width: 0,
+      length: 0,
+      isValid: false,
+      error: "Invalid grid data: rows or columns are empty"
+    };
+  }
+
+  // Find grid line data
+  const startRowData = rows.find(r => r.label === startRow);
+  const endRowData = rows.find(r => r.label === endRow);
+  const startColData = cols.find(c => c.label === startCol);
+  const endColData = cols.find(c => c.label === endCol);
+
+  // Validate grid line existence
+  if (!startRowData || !endRowData || !startColData || !endColData) {
+    const missing = [];
+    if (!startRowData) missing.push(`start row "${startRow}"`);
+    if (!endRowData) missing.push(`end row "${endRow}"`);
+    if (!startColData) missing.push(`start column "${startCol}"`);
+    if (!endColData) missing.push(`end column "${endCol}"`);
+
+    return {
+      area: 0,
+      width: 0,
+      length: 0,
+      isValid: false,
+      error: `Grid lines not found: ${missing.join(", ")}`
+    };
+  }
+
+  // Validate row and column ordering
+  const startRowIndex = rows.findIndex(r => r.label === startRow);
+  const endRowIndex = rows.findIndex(r => r.label === endRow);
+  const startColIndex = cols.findIndex(c => c.label === startCol);
+  const endColIndex = cols.findIndex(c => c.label === endCol);
+
+  if (startRowIndex > endRowIndex || startColIndex > endColIndex) {
+    return {
+      area: 0,
+      width: 0,
+      length: 0,
+      isValid: false,
+      error: "Invalid span: start position must be before end position"
+    };
+  }
+
+  let width: number;
+  let length: number;
+
+  // Calculate dimensions based on assignment type
+  if (startRow === endRow && startCol === endCol) {
+    // Single cell assignment - calculate cell dimensions
+    width = calculateCellDimension(rows, startRowIndex, 'row');
+    length = calculateCellDimension(cols, startColIndex, 'col');
+  } else {
+    // Multi-cell span assignment - calculate span dimensions
+    width = Math.abs(endRowData.position - startRowData.position);
+    length = Math.abs(endColData.position - startColData.position);
+  }
+
+  // Validate calculated dimensions
+  if (width <= 0 || length <= 0) {
+    return {
+      area: 0,
+      width,
+      length,
+      isValid: false,
+      error: `Invalid dimensions: width=${width}m, length=${length}m`
+    };
+  }
+
+  const area = width * length;
+
+  return {
+    area,
+    width,
+    length,
+    isValid: true
+  };
+};
+
+/**
+ * Calculate dimension of a single grid cell in a given direction
+ */
+const calculateCellDimension = (
+  gridLines: GridLine[],
+  currentIndex: number,
+  direction: 'row' | 'col'
+): number => {
+  const currentLine = gridLines[currentIndex];
+
+  if (currentIndex < gridLines.length - 1) {
+    // Not the last line - use distance to next line
+    return Math.abs(gridLines[currentIndex + 1].position - currentLine.position);
+  } else if (currentIndex > 0) {
+    // Last line - use spacing from previous line
+    const prevSpacing = Math.abs(currentLine.position - gridLines[currentIndex - 1].position);
+    return prevSpacing;
+  } else {
+    // Single line grid - use default dimension
+    return direction === 'row' ? 4.0 : 5.0; // Default room dimensions
+  }
+};
+
+/**
+ * Calculate total area for multiple slab assignments
+ */
+export const calculateTotalSlabArea = (
+  slabAssignments: Array<{
+    slabSpecId: string;
+    area: number;
+  }>,
+  targetSlabSpecId: string
+): number => {
+  return slabAssignments
+    .filter(assignment => assignment.slabSpecId === targetSlabSpecId)
+    .reduce((total, assignment) => total + assignment.area, 0);
+};
+
+/**
+ * Validate grid system integrity
+ */
+export const validateGridSystem = (rows: GridLine[], cols: GridLine[]): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+
+  // Check for empty grids
+  if (!rows || rows.length === 0) {
+    errors.push("No rows defined in grid system");
+  }
+  if (!cols || cols.length === 0) {
+    errors.push("No columns defined in grid system");
+  }
+
+  // Check for duplicate labels
+  const rowLabels = rows?.map(r => r.label) || [];
+  const colLabels = cols?.map(c => c.label) || [];
+
+  const duplicateRows = rowLabels.filter((label, index) => rowLabels.indexOf(label) !== index);
+  const duplicateCols = colLabels.filter((label, index) => colLabels.indexOf(label) !== index);
+
+  if (duplicateRows.length > 0) {
+    errors.push(`Duplicate row labels: ${duplicateRows.join(", ")}`);
+  }
+  if (duplicateCols.length > 0) {
+    errors.push(`Duplicate column labels: ${duplicateCols.join(", ")}`);
+  }
+
+  // Check for non-monotonic positions (should be sorted)
+  const rowPositions = rows?.map(r => r.position) || [];
+  const colPositions = cols?.map(c => c.position) || [];
+
+  const sortedRowPositions = [...rowPositions].sort((a, b) => a - b);
+  const sortedColPositions = [...colPositions].sort((a, b) => a - b);
+
+  if (JSON.stringify(rowPositions) !== JSON.stringify(sortedRowPositions)) {
+    errors.push("Row positions are not in ascending order");
+  }
+  if (JSON.stringify(colPositions) !== JSON.stringify(sortedColPositions)) {
+    errors.push("Column positions are not in ascending order");
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
   };
 };

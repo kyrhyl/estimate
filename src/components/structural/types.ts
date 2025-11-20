@@ -25,14 +25,11 @@ export type ColumnSpec = {
   tieSpacing: number; // spacing in meters
 };
 
-// SlabSpec type definition
+// SlabSpec type definition (pure specifications)
 export type SlabSpec = {
   id: string;
   thickness: number; // slab thickness in mm
   type: 'one-way' | 'two-way';
-  // Span dimensions for design calculations
-  spanLength: number; // longer span in meters (for one-way) or both directions (for two-way)
-  spanWidth: number; // shorter span in meters (for one-way) or perpendicular direction (for two-way)
   // Main reinforcement (spanning direction for one-way, both directions for two-way)
   mainBarSize: number;
   mainBarSpacing: number; // spacing in mm
@@ -45,6 +42,17 @@ export type SlabSpec = {
   // Additional top reinforcement if needed
   topBarSize: number | null;
   topBarSpacing: number | null; // spacing in mm
+};
+
+// SlabAssignment type definition (spatial mapping)
+export type SlabAssignment = {
+  id: string;
+  slabSpecId: string; // references SlabSpec.id
+  startRow: string; // starting row label (e.g., 'A')
+  endRow: string; // ending row label (e.g., 'B')
+  startCol: string; // starting column label (e.g., '1')
+  endCol: string; // ending column label (e.g., '2')
+  area: number; // calculated area in m²
 };
 
 // Multi-floor data structures
@@ -63,6 +71,7 @@ export type Floor = {
   beamSpecs: BeamSpec[];
   columnSpecs: ColumnSpec[];
   slabSpecs?: SlabSpec[];
+  slabAssignments?: SlabAssignment[];
   colBeamIds: string[];
   rowBeamIds: string[];
   columnIds: string[]; // grid intersection assignments

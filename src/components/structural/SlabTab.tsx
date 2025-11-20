@@ -98,53 +98,6 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Span Length (m)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="1"
-                      max="20"
-                      value={slab.spanLength}
-                      onChange={(e) => {
-                        const newSpecs = slabSpecs.map(s =>
-                          s.id === slab.id ? { ...s, spanLength: parseFloat(e.target.value) || 3 } : s
-                        );
-                        setSlabSpecs(newSpecs);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Span Width (m)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="1"
-                      max="20"
-                      value={slab.spanWidth}
-                      onChange={(e) => {
-                        const newSpecs = slabSpecs.map(s =>
-                          s.id === slab.id ? { ...s, spanWidth: parseFloat(e.target.value) || 3 } : s
-                        );
-                        setSlabSpecs(newSpecs);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <div className="text-sm text-gray-600">
-                    <strong>Aspect Ratio:</strong> {(slab.spanLength / slab.spanWidth).toFixed(2)}:1
-                    {slab.type === 'one-way' && slab.spanLength / slab.spanWidth < 2 && (
-                      <span className="text-orange-600 ml-2">⚠️ Consider two-way design</span>
-                    )}
-                    {slab.type === 'two-way' && slab.spanLength / slab.spanWidth > 2 && (
-                      <span className="text-blue-600 ml-2">ℹ️ One-way may be more economical</span>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* Main Reinforcement Section */}
@@ -157,7 +110,7 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Bar Size (mm)</label>
                     <select
-                      value={slab.mainBarSize || ''}
+                      value={slab.mainBarSize}
                       onChange={(e) => {
                         const newSpecs = slabSpecs.map(s =>
                           s.id === slab.id ? { ...s, mainBarSize: parseInt(e.target.value) || 12 } : s
@@ -167,7 +120,7 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       {BAR_SIZES.map(size => (
-                        <option key={size} value={size}>{size}mm</option>
+                        <option key={size} value={size}>{size}</option>
                       ))}
                     </select>
                   </div>
@@ -176,8 +129,8 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                     <input
                       type="number"
                       step="25"
-                      min="100"
-                      max="400"
+                      min="50"
+                      max="500"
                       value={slab.mainBarSpacing}
                       onChange={(e) => {
                         const newSpecs = slabSpecs.map(s =>
@@ -194,25 +147,24 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
               {/* Distribution Bars Section */}
               <div className="mb-6">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
-                  Distribution Bars
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                  Distribution Bars (Perpendicular)
                 </h4>
-                <p className="text-xs text-gray-500 mb-3">Perpendicular to main bars, helps distribute load evenly</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Bar Size (mm)</label>
                     <select
-                      value={slab.distributionBarSize || ''}
+                      value={slab.distributionBarSize}
                       onChange={(e) => {
                         const newSpecs = slabSpecs.map(s =>
                           s.id === slab.id ? { ...s, distributionBarSize: parseInt(e.target.value) || 8 } : s
                         );
                         setSlabSpecs(newSpecs);
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
-                      {BAR_SIZES.filter(size => size <= 16).map(size => (
-                        <option key={size} value={size}>{size}mm</option>
+                      {BAR_SIZES.map(size => (
+                        <option key={size} value={size}>{size}</option>
                       ))}
                     </select>
                   </div>
@@ -220,9 +172,9 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Spacing (mm)</label>
                     <input
                       type="number"
-                      step="50"
-                      min="150"
-                      max="400"
+                      step="25"
+                      min="50"
+                      max="500"
                       value={slab.distributionBarSpacing}
                       onChange={(e) => {
                         const newSpecs = slabSpecs.map(s =>
@@ -230,7 +182,7 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                         );
                         setSlabSpecs(newSpecs);
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -239,25 +191,24 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
               {/* Temperature Reinforcement Section */}
               <div className="mb-6">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
                   Temperature Reinforcement
                 </h4>
-                <p className="text-xs text-gray-500 mb-3">Resists temperature stresses and concrete shrinkage</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Bar Size (mm)</label>
                     <select
-                      value={slab.temperatureBarSize || ''}
+                      value={slab.temperatureBarSize}
                       onChange={(e) => {
                         const newSpecs = slabSpecs.map(s =>
                           s.id === slab.id ? { ...s, temperatureBarSize: parseInt(e.target.value) || 8 } : s
                         );
                         setSlabSpecs(newSpecs);
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     >
-                      {BAR_SIZES.filter(size => size <= 12).map(size => (
-                        <option key={size} value={size}>{size}mm</option>
+                      {BAR_SIZES.map(size => (
+                        <option key={size} value={size}>{size}</option>
                       ))}
                     </select>
                   </div>
@@ -265,9 +216,9 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Spacing (mm)</label>
                     <input
                       type="number"
-                      step="50"
-                      min="100"
-                      max="250"
+                      step="25"
+                      min="50"
+                      max="500"
                       value={slab.temperatureBarSpacing}
                       onChange={(e) => {
                         const newSpecs = slabSpecs.map(s =>
@@ -275,7 +226,7 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                         );
                         setSlabSpecs(newSpecs);
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -302,7 +253,7 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                     >
                       <option value="">None</option>
                       {BAR_SIZES.map(size => (
-                        <option key={size} value={size}>{size}mm</option>
+                        <option key={size} value={size}>{size}</option>
                       ))}
                     </select>
                   </div>
@@ -311,8 +262,8 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                     <input
                       type="number"
                       step="25"
-                      min="100"
-                      max="400"
+                      min="50"
+                      max="500"
                       value={slab.topBarSpacing || ''}
                       onChange={(e) => {
                         const newSpecs = slabSpecs.map(s =>
@@ -320,74 +271,41 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
                         );
                         setSlabSpecs(newSpecs);
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       disabled={!slab.topBarSize}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Design Recommendations Section */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                  <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
-                  Design Recommendations
-                </h4>
-                <div className="bg-blue-50 rounded-md p-3 space-y-2">
-                  {(() => {
-                    const recommendations = getSlabDesignRecommendations(slab);
-                    return (
-                      <>
-                        <div className="grid grid-cols-3 gap-4 text-xs">
-                          <div>
-                            <span className="text-gray-600">Recommended Thickness:</span>
-                            <div className="font-medium">{recommendations.recommendedThickness}mm</div>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Main Bar Spacing:</span>
-                            <div className="font-medium">{recommendations.recommendedMainSpacing}mm</div>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Dist. Bar Spacing:</span>
-                            <div className="font-medium">{recommendations.recommendedDistSpacing}mm</div>
-                          </div>
-                        </div>
-                        {recommendations.designNotes.length > 0 && (
-                          <div className="border-t border-blue-200 pt-2 mt-2">
-                            <div className="text-xs font-medium text-gray-700 mb-1">Design Notes:</div>
-                            {recommendations.designNotes.map((note, index) => (
-                              <div key={index} className="text-xs text-gray-600">{note}</div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
+              {/* Calculations Section */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Material Quantities</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Unit Volume:</span>
+                    <span className="font-medium">{(slab.thickness / 1000).toFixed(3)} m³/m²</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Grade 40 Steel:</span>
+                    <span className="font-medium">{calculateSlabReinforcementWeights(slab).grade40Weight.toFixed(2)} kg/m²</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Grade 60 Steel:</span>
+                    <span className="font-medium">{calculateSlabReinforcementWeights(slab).grade60Weight.toFixed(2)} kg/m²</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Calculated Fields Section */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  Calculated Values per m²
-                </h4>
-                <div className="bg-gray-50 rounded-md p-3 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Concrete Volume:</span>
-                    <span className="text-sm font-medium">{calculateSlabConcreteVolume(slab, 1).toFixed(3)} m³/m²</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Grade 40 Steel (&lt;16mm):</span>
-                    <span className="text-sm font-medium">{calculateSlabReinforcementWeights(slab).grade40Weight.toFixed(2)} kg/m²</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Grade 60 Steel (≥16mm):</span>
-                    <span className="text-sm font-medium">{calculateSlabReinforcementWeights(slab).grade60Weight.toFixed(2)} kg/m²</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Total Steel:</span>
-                    <span className="text-sm font-medium font-semibold">{calculateSlabReinforcementWeights(slab).totalWeight.toFixed(2)} kg/m²</span>
+                {/* Design Recommendations */}
+                <div className="mt-4 pt-4 border-t">
+                  <h5 className="text-sm font-semibold text-gray-900 mb-2">Design Recommendations</h5>
+                  <div className="text-xs text-gray-600 space-y-1">
+                    {(getSlabDesignRecommendations(slab)?.designNotes || []).map((rec, idx) => (
+                      <div key={idx} className="flex items-start">
+                        <span className="text-blue-500 mr-1">•</span>
+                        <span>{rec}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -404,8 +322,6 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
               id: `S${slabSpecs.length + 1}`,
               thickness: 125,
               type: 'two-way',
-              spanLength: 6,
-              spanWidth: 4,
               mainBarSize: 12,
               mainBarSpacing: 150,
               distributionBarSize: 8,
@@ -416,7 +332,7 @@ export default function SlabTab({ slabSpecs, setSlabSpecs }: SlabTabProps) {
               topBarSpacing: null
             }]);
           }}
-          className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+          className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
