@@ -104,8 +104,8 @@ describe('SummaryTab', () => {
 
     expect(screen.getByText('Building Totals')).toBeInTheDocument()
     expect(screen.getByText('150.75')).toBeInTheDocument() // Concrete volume
-    expect(screen.getByText('2500')).toBeInTheDocument() // Grade 40 steel
-    expect(screen.getByText('1800')).toBeInTheDocument() // Grade 60 steel
+    expect(screen.getByText('2500.0')).toBeInTheDocument() // Grade 40 steel
+    expect(screen.getByText('1800.0')).toBeInTheDocument() // Grade 60 steel
   })
 
   it('displays floor breakdown header', () => {
@@ -142,8 +142,8 @@ describe('SummaryTab', () => {
     expect(screen.getByText('A1-A2, B1-B2')).toBeInTheDocument()
     expect(screen.getByText('12.5')).toBeInTheDocument()
     expect(screen.getByText('6.25')).toBeInTheDocument()
-    expect(screen.getByText('126')).toBeInTheDocument() // Grade 40 for B1 (rounded)
-    expect(screen.getByText('89')).toBeInTheDocument() // Grade 60 for B1 (rounded)
+    expect(screen.getByText('125.5')).toBeInTheDocument() // Grade 40 for B1
+    expect(screen.getByText('89.2')).toBeInTheDocument() // Grade 60 for B1
 
     expect(screen.getByText('B2')).toBeInTheDocument()
     expect(screen.getByText('A2-A3')).toBeInTheDocument()
@@ -167,8 +167,8 @@ describe('SummaryTab', () => {
     expect(screen.getByText('A1, A3, C1')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument() // Count
     expect(screen.getByText('141.00')).toBeInTheDocument() // Concrete volume
-    expect(screen.getByText('2300')).toBeInTheDocument() // Grade 40 (rounded)
-    expect(screen.getByText('1647')).toBeInTheDocument() // Grade 60 (rounded)
+    expect(screen.getByText('2299.5')).toBeInTheDocument() // Grade 40
+    expect(screen.getByText('1646.5')).toBeInTheDocument() // Grade 60
   })
 
   it('calls calculateBuildingSummary with correct building data', () => {

@@ -200,7 +200,7 @@ describe('GridTab', () => {
 
     // Check that lengths are displayed in the beam assignment tables
     // Column spacing: 5m between positions 0-5, row spacing: 4m between positions 0-4
-    expect(screen.getAllByText('5').length).toBeGreaterThan(0) // Column spacing (integer)
-    expect(screen.getAllByText('4').length).toBeGreaterThan(0) // Row spacing (integer)
+    expect(screen.getAllByText('5.00').length).toBeGreaterThan(0) // Column spacing (with decimals)
+    expect(screen.getAllByText('4.00').length).toBeGreaterThan(0) // Row spacing (with decimals)
   })
 })

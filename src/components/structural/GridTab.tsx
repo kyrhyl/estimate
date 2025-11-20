@@ -46,15 +46,38 @@ export default function GridTab({
   updateCurrentFloor,
 }: GridTabProps) {
   // Calculate lengths between adjacent columns for each row
-  const colLengths: { row: string, from: string, to: string, length: number, beamId: string, segment: string }[] = [];
+  const colLengths: { row: string, from: string, to: string, length: number, effectiveLength: number, beamId: string, segment: string }[] = [];
   if (cols && cols.length > 1 && rows && rows.length > 0) {
     for (let r = 0; r < rows.length; r++) {
       for (let c = 1; c < cols.length; c++) {
+        const centerLength = Math.abs((cols[c]?.position || 0) - (cols[c - 1]?.position || 0));
+        
+        // Calculate effective length considering column widths
+        const startColIndex = r * cols.length + (c - 1);
+        const endColIndex = r * cols.length + c;
+        const startColumnId = columnIds[startColIndex];
+        const endColumnId = columnIds[endColIndex];
+        
+        let startColWidth = 0;
+        let endColWidth = 0;
+        
+        if (startColumnId) {
+          const startCol = columnSpecs.find(col => col.id === startColumnId);
+          if (startCol) startColWidth = startCol.width;
+        }
+        if (endColumnId) {
+          const endCol = columnSpecs.find(col => col.id === endColumnId);
+          if (endCol) endColWidth = endCol.width;
+        }
+        
+        const effectiveLength = Math.max(0, centerLength - (startColWidth / 2 + endColWidth / 2));
+        
         colLengths.push({
           row: rows[r]?.label || '',
           from: cols[c - 1]?.label || '',
           to: cols[c]?.label || '',
-          length: Math.abs((cols[c]?.position || 0) - (cols[c - 1]?.position || 0)),
+          length: centerLength,
+          effectiveLength,
           beamId: colBeamIds[(r * (cols.length - 1)) + (c - 1)] || "",
           segment: `${rows[r]?.label || ''}${cols[c - 1]?.label || ''}-${rows[r]?.label || ''}${cols[c]?.label || ''}`,
         });
@@ -63,15 +86,38 @@ export default function GridTab({
   }
 
   // Calculate lengths between adjacent rows for each column
-  const rowLengths: { col: string, from: string, to: string, length: number, beamId: string, segment: string }[] = [];
+  const rowLengths: { col: string, from: string, to: string, length: number, effectiveLength: number, beamId: string, segment: string }[] = [];
   if (rows && rows.length > 1 && cols && cols.length > 0) {
     for (let c = 0; c < cols.length; c++) {
       for (let r = 1; r < rows.length; r++) {
+        const centerLength = Math.abs((rows[r]?.position || 0) - (rows[r - 1]?.position || 0));
+        
+        // Calculate effective length considering column depths
+        const startColIndex = (r - 1) * cols.length + c;
+        const endColIndex = r * cols.length + c;
+        const startColumnId = columnIds[startColIndex];
+        const endColumnId = columnIds[endColIndex];
+        
+        let startColDepth = 0;
+        let endColDepth = 0;
+        
+        if (startColumnId) {
+          const startCol = columnSpecs.find(col => col.id === startColumnId);
+          if (startCol) startColDepth = startCol.depth;
+        }
+        if (endColumnId) {
+          const endCol = columnSpecs.find(col => col.id === endColumnId);
+          if (endCol) endColDepth = endCol.depth;
+        }
+        
+        const effectiveLength = Math.max(0, centerLength - (startColDepth / 2 + endColDepth / 2));
+        
         rowLengths.push({
           col: cols[c]?.label || '',
           from: rows[r - 1]?.label || '',
           to: rows[r]?.label || '',
-          length: Math.abs((rows[r]?.position || 0) - (rows[r - 1]?.position || 0)),
+          length: centerLength,
+          effectiveLength,
           beamId: rowBeamIds[(c * (rows.length - 1)) + (r - 1)] || "",
           segment: `${rows[r - 1]?.label || ''}${cols[c]?.label || ''}-${rows[r]?.label || ''}${cols[c]?.label || ''}`,
         });
@@ -134,14 +180,14 @@ export default function GridTab({
             const beamSummaryMap = new Map();
             
             // Aggregate beam data
-            [...colLengths, ...rowLengths].forEach(({ beamId, length, segment }) => {
+            [...colLengths, ...rowLengths].forEach(({ beamId, effectiveLength, segment }) => {
               if (beamId && !beamSummaryMap.has(beamId)) {
                 beamSummaryMap.set(beamId, { segments: [], totalLength: 0 });
               }
               if (beamId) {
                 const summary = beamSummaryMap.get(beamId);
                 summary.segments.push(segment);
-                summary.totalLength += length;
+                summary.totalLength += effectiveLength;
               }
             });
 
@@ -183,10 +229,10 @@ export default function GridTab({
                               <td className="py-3 px-4 text-center font-mono">{summary.totalLength.toFixed(1)}</td>
                               <td className="py-3 px-4 text-center font-mono">{concreteVolume.toFixed(2)}</td>
                               <td className="py-3 px-4 text-center font-mono text-orange-600">
-                                {grade40Steel.toFixed(0)}
+                                {grade40Steel.toFixed(1)}
                               </td>
                               <td className="py-3 px-4 text-center font-mono text-red-600">
-                                {grade60Steel.toFixed(0)}
+                                {grade60Steel.toFixed(1)}
                               </td>
                             </tr>
                           );
@@ -214,7 +260,7 @@ export default function GridTab({
                               if (!beam) return sum;
                               const weights = calculateReinforcementWeights(beam);
                               return sum + weights.grade40Weight * summary.totalLength;
-                            }, 0).toFixed(0)}
+                            }, 0).toFixed(1)}
                           </td>
                           <td className="py-3 px-4 text-center font-mono font-bold text-red-600">
                             {Array.from(beamSummaryMap.entries()).reduce((sum, [beamId, summary]) => {
@@ -222,7 +268,7 @@ export default function GridTab({
                               if (!beam) return sum;
                               const weights = calculateReinforcementWeights(beam);
                               return sum + weights.grade60Weight * summary.totalLength;
-                            }, 0).toFixed(0)}
+                            }, 0).toFixed(1)}
                           </td>
                         </tr>
                       </tfoot>
@@ -299,10 +345,10 @@ export default function GridTab({
                                 </td>
                                 <td className="py-3 px-4 text-center font-mono">{totalConcreteVolume.toFixed(2)}</td>
                                 <td className="py-3 px-4 text-center font-mono text-orange-600">
-                                  {totalGrade40Steel.toFixed(0)}
+                                  {totalGrade40Steel.toFixed(1)}
                                 </td>
                                 <td className="py-3 px-4 text-center font-mono text-red-600">
-                                  {totalGrade60Steel.toFixed(0)}
+                                  {totalGrade60Steel.toFixed(1)}
                                 </td>
                               </tr>
                             );
@@ -327,7 +373,7 @@ export default function GridTab({
                                 if (!column) return sum;
                                 const weights = calculateColumnReinforcementWeights(column);
                                 return sum + weights.grade40Weight * summary.count;
-                              }, 0).toFixed(0)}
+                              }, 0).toFixed(1)}
                             </td>
                             <td className="py-3 px-4 text-center font-mono font-bold text-red-600">
                               {Array.from(columnSummaryMap.entries()).reduce((sum, [columnId, summary]) => {
@@ -335,7 +381,7 @@ export default function GridTab({
                                 if (!column) return sum;
                                 const weights = calculateColumnReinforcementWeights(column);
                                 return sum + weights.grade60Weight * summary.count;
-                              }, 0).toFixed(0)}
+                              }, 0).toFixed(1)}
                             </td>
                           </tr>
                         </tfoot>
@@ -448,7 +494,8 @@ export default function GridTab({
                   <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Row</th>
                   <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">From</th>
                   <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">To</th>
-                  <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Length (m)</th>
+                  <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Center-Center (m)</th>
+                  <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Effective Span (m)</th>
                   <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Beam ID</th>
                 </tr>
               </thead>
@@ -458,7 +505,8 @@ export default function GridTab({
                     <td className="p-2 text-center">{len.row}</td>
                     <td className="p-2 text-center">{len.from}</td>
                     <td className="p-2 text-center">{len.to}</td>
-                    <td className="p-2 text-center">{len.length}</td>
+                    <td className="p-2 text-center font-mono">{len.length.toFixed(2)}</td>
+                    <td className="p-2 text-center font-mono text-blue-600 font-semibold">{len.effectiveLength.toFixed(2)}</td>
                     <td className="p-2 text-center">
                       <select
                         value={len.beamId}
@@ -491,7 +539,8 @@ export default function GridTab({
                   <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Column</th>
                   <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">From</th>
                   <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">To</th>
-                  <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Length (m)</th>
+                  <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Center-Center (m)</th>
+                  <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Effective Span (m)</th>
                   <th className="p-2 text-center text-xs font-medium text-gray-500 uppercase">Beam ID</th>
                 </tr>
               </thead>
@@ -501,7 +550,8 @@ export default function GridTab({
                     <td className="p-2 text-center">{len.col}</td>
                     <td className="p-2 text-center">{len.from}</td>
                     <td className="p-2 text-center">{len.to}</td>
-                    <td className="p-2 text-center">{len.length}</td>
+                    <td className="p-2 text-center font-mono">{len.length.toFixed(2)}</td>
+                    <td className="p-2 text-center font-mono text-blue-600 font-semibold">{len.effectiveLength.toFixed(2)}</td>
                     <td className="p-2 text-center">
                       <select
                         value={len.beamId}

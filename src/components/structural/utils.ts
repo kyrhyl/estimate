@@ -125,11 +125,32 @@ export const calculateBuildingSummary = (building: Building): BuildingSummary =>
       for (let c = 0; c < floor.structuralSystem.numCols - 1; c++) {
         const from = floor.structuralSystem.cols[c];
         const to = floor.structuralSystem.cols[c + 1];
-        const length = Math.abs(to.position - from.position);
+        const centerLength = Math.abs(to.position - from.position);
+        
+        // Calculate effective length considering column widths
+        const startColIndex = r * floor.structuralSystem.numCols + c;
+        const endColIndex = r * floor.structuralSystem.numCols + c + 1;
+        const startColumnId = floor.columnIds[startColIndex];
+        const endColumnId = floor.columnIds[endColIndex];
+        
+        let startColWidth = 0;
+        let endColWidth = 0;
+        
+        if (startColumnId) {
+          const startCol = floor.columnSpecs.find(col => col.id === startColumnId);
+          if (startCol) startColWidth = startCol.width;
+        }
+        if (endColumnId) {
+          const endCol = floor.columnSpecs.find(col => col.id === endColumnId);
+          if (endCol) endColWidth = endCol.width;
+        }
+        
+        const effectiveLength = Math.max(0, centerLength - (startColWidth / 2 + endColWidth / 2));
+        
         const beamIdIndex = r * (floor.structuralSystem.numCols - 1) + c;
         const beamId = floor.colBeamIds[beamIdIndex];
         if (beamId) {
-          colLengths.push({ beamId, len: length, segment: `${floor.structuralSystem.rows[r].label}${from.label}-${floor.structuralSystem.rows[r].label}${to.label}` });
+          colLengths.push({ beamId, len: effectiveLength, segment: `${floor.structuralSystem.rows[r].label}${from.label}-${floor.structuralSystem.rows[r].label}${to.label}` });
         }
       }
     }
@@ -140,11 +161,32 @@ export const calculateBuildingSummary = (building: Building): BuildingSummary =>
       for (let r = 0; r < floor.structuralSystem.numRows - 1; r++) {
         const from = floor.structuralSystem.rows[r];
         const to = floor.structuralSystem.rows[r + 1];
-        const length = Math.abs(to.position - from.position);
+        const centerLength = Math.abs(to.position - from.position);
+        
+        // Calculate effective length considering column depths
+        const startColIndex = r * floor.structuralSystem.numCols + c;
+        const endColIndex = (r + 1) * floor.structuralSystem.numCols + c;
+        const startColumnId = floor.columnIds[startColIndex];
+        const endColumnId = floor.columnIds[endColIndex];
+        
+        let startColDepth = 0;
+        let endColDepth = 0;
+        
+        if (startColumnId) {
+          const startCol = floor.columnSpecs.find(col => col.id === startColumnId);
+          if (startCol) startColDepth = startCol.depth;
+        }
+        if (endColumnId) {
+          const endCol = floor.columnSpecs.find(col => col.id === endColumnId);
+          if (endCol) endColDepth = endCol.depth;
+        }
+        
+        const effectiveLength = Math.max(0, centerLength - (startColDepth / 2 + endColDepth / 2));
+        
         const beamIdIndex = c * (floor.structuralSystem.numRows - 1) + r;
         const beamId = floor.rowBeamIds[beamIdIndex];
         if (beamId) {
-          rowLengths.push({ beamId, len: length, segment: `${from.label}${floor.structuralSystem.cols[c].label}-${to.label}${floor.structuralSystem.cols[c].label}` });
+          rowLengths.push({ beamId, len: effectiveLength, segment: `${from.label}${floor.structuralSystem.cols[c].label}-${to.label}${floor.structuralSystem.cols[c].label}` });
         }
       }
     }

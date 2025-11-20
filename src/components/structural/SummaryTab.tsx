@@ -32,13 +32,13 @@ export default function SummaryTab({ building }: SummaryTabProps) {
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-orange-600 mb-1">
-                  {summary.totalGrade40Steel.toFixed(0)}
+                  {summary.totalGrade40Steel.toFixed(1)}
                 </div>
                 <div className="text-sm text-gray-600">Grade 40 Steel (kg)</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-red-600 mb-1">
-                  {summary.totalGrade60Steel.toFixed(0)}
+                  {summary.totalGrade60Steel.toFixed(1)}
                 </div>
                 <div className="text-sm text-gray-600">Grade 60 Steel (kg)</div>
               </div>
@@ -60,10 +60,10 @@ export default function SummaryTab({ building }: SummaryTabProps) {
                       <strong>Concrete:</strong> {floor.concreteVolume.toFixed(2)} m³
                     </span>
                     <span className="text-orange-600">
-                      <strong>Grade 40:</strong> {floor.grade40Steel.toFixed(0)} kg
+                      <strong>Grade 40:</strong> {floor.grade40Steel.toFixed(1)} kg
                     </span>
                     <span className="text-red-600">
-                      <strong>Grade 60:</strong> {floor.grade60Steel.toFixed(0)} kg
+                      <strong>Grade 60:</strong> {floor.grade60Steel.toFixed(1)} kg
                     </span>
                   </div>
                 </div>
@@ -96,10 +96,10 @@ export default function SummaryTab({ building }: SummaryTabProps) {
                               <td className="py-3 px-2 text-center font-mono">{beam.totalLength.toFixed(1)}</td>
                               <td className="py-3 px-2 text-center font-mono">{beam.concreteVolume.toFixed(2)}</td>
                               <td className="py-3 px-2 text-center font-mono text-orange-600">
-                                {beam.grade40Steel.toFixed(0)}
+                                {beam.grade40Steel.toFixed(1)}
                               </td>
                               <td className="py-3 px-2 text-center font-mono text-red-600">
-                                {beam.grade60Steel.toFixed(0)}
+                                {beam.grade60Steel.toFixed(1)}
                               </td>
                             </tr>
                           ))}
@@ -135,10 +135,10 @@ export default function SummaryTab({ building }: SummaryTabProps) {
                               <td className="py-3 px-2 text-center font-mono">{column.count}</td>
                               <td className="py-3 px-2 text-center font-mono">{column.concreteVolume.toFixed(2)}</td>
                               <td className="py-3 px-2 text-center font-mono text-orange-600">
-                                {column.grade40Steel.toFixed(0)}
+                                {column.grade40Steel.toFixed(1)}
                               </td>
                               <td className="py-3 px-2 text-center font-mono text-red-600">
-                                {column.grade60Steel.toFixed(0)}
+                                {column.grade60Steel.toFixed(1)}
                               </td>
                             </tr>
                           ))}
@@ -174,10 +174,10 @@ export default function SummaryTab({ building }: SummaryTabProps) {
                               <td className="py-3 px-2 text-center font-mono">{slab.totalArea.toFixed(1)}</td>
                               <td className="py-3 px-2 text-center font-mono">{slab.concreteVolume.toFixed(2)}</td>
                               <td className="py-3 px-2 text-center font-mono text-orange-600">
-                                {slab.grade40Steel.toFixed(0)}
+                                {slab.grade40Steel.toFixed(1)}
                               </td>
                               <td className="py-3 px-2 text-center font-mono text-red-600">
-                                {slab.grade60Steel.toFixed(0)}
+                                {slab.grade60Steel.toFixed(1)}
                               </td>
                             </tr>
                           ))}
