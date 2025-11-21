@@ -9,6 +9,7 @@ import BeamTab from "../../components/structural/BeamTab";
 import ColumnTab from "../../components/structural/ColumnTab";
 import SlabTab from "../../components/structural/SlabTab";
 import SlabAssignmentTab from "../../components/structural/SlabAssignmentTab";
+import FootingTab from "../../components/structural/FootingTab";
 import GridTab from "../../components/structural/GridTab";
 import SummaryTab from "../../components/structural/SummaryTab";
 
@@ -238,11 +239,12 @@ const calculateBuildingSummaryWithColumnWidth = (building: Building): BuildingSu
     totalGrade40Steel,
     totalGrade60Steel,
     floorBreakdown,
+    footingBreakdown: [],
   };
 };
 
 export default function StructuralPage() {
-  const [activeTab, setActiveTab] = useState<'beams' | 'columns' | 'slabs' | 'grid' | 'summary'>('beams');
+  const [activeTab, setActiveTab] = useState<'beams' | 'columns' | 'slabs' | 'footings' | 'grid' | 'summary'>('beams');
 
   // Use custom hooks for state management
   const {
@@ -256,6 +258,8 @@ export default function StructuralPage() {
     setColumnSpecs,
     setSlabSpecs,
     setSlabAssignments,
+    setFootingSpecs,
+    setFootingAssignments,
     setColBeamIds,
     setRowBeamIds,
     setColumnIds,
@@ -358,6 +362,17 @@ export default function StructuralPage() {
 
         {activeTab === 'slabs' && (
           <SlabTab slabSpecs={currentFloor.slabSpecs || []} setSlabSpecs={setSlabSpecs} />
+        )}
+
+        {activeTab === 'footings' && (
+          <FootingTab
+            footingSpecs={building.footingSpecs || []}
+            footingAssignments={building.footingAssignments || []}
+            setFootingSpecs={setFootingSpecs}
+            setFootingAssignments={setFootingAssignments}
+            rows={currentFloor.structuralSystem.rows}
+            cols={currentFloor.structuralSystem.cols}
+          />
         )}
 
         {activeTab === 'grid' && (

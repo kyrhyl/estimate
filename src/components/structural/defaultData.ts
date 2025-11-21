@@ -3,6 +3,11 @@ import { Building } from './types';
 export const defaultBuilding: Building = {
   id: "building-1",
   name: "Building 1",
+  footingSpecs: [
+    { id: "F1", type: "isolated", width: 1.5, length: 1.5, depth: 1.2, mainBarSize: 16, mainBarSpacing: 150, distributionBarSize: 12, distributionBarSpacing: 200, stirrupSize: 8, stirrupSpacing: 0.15, topBarsRequired: false },
+    { id: "F2", type: "combined", width: 2.0, length: 2.0, depth: 1.5, mainBarSize: 20, mainBarSpacing: 125, distributionBarSize: 16, distributionBarSpacing: 150, stirrupSize: 10, stirrupSpacing: 0.12, topBarsRequired: false },
+  ],
+  footingAssignments: [],
   floors: [
     {
       id: "floor-1",

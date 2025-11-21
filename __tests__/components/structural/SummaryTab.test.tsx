@@ -84,7 +84,8 @@ const mockSummary = {
       ],
       slabBreakdown: []
     }
-  ]
+  ],
+  footingBreakdown: []
 }
 
 describe('SummaryTab', () => {
@@ -224,5 +225,44 @@ describe('SummaryTab', () => {
     render(<SummaryTab building={mockBuilding} />)
 
     expect(screen.queryByText('Columns')).not.toBeInTheDocument()
+  })
+
+  it('displays footing breakdown table when footings exist', () => {
+    const footingSummary = {
+      ...mockSummary,
+      footingBreakdown: [
+        {
+          footingId: 'F1',
+          locations: ['A1', 'B2', 'C3'],
+          count: 3,
+          concreteVolume: 12.0,
+          grade40Steel: 245.5,
+          grade60Steel: 180.2
+        },
+        {
+          footingId: 'F2',
+          locations: ['A2', 'B3'],
+          count: 2,
+          concreteVolume: 8.0,
+          grade40Steel: 163.7,
+          grade60Steel: 120.1
+        }
+      ]
+    }
+    mockCalculateBuildingSummary.mockReturnValue(footingSummary)
+
+    render(<SummaryTab building={mockBuilding} />)
+
+    expect(screen.getByText('Footing Breakdown')).toBeInTheDocument()
+    expect(screen.getByText('F1')).toBeInTheDocument()
+    expect(screen.getByText('F2')).toBeInTheDocument()
+    expect(screen.getByText('A1, B2, C3')).toBeInTheDocument()
+    expect(screen.getByText('A2, B3')).toBeInTheDocument()
+  })
+
+  it('does not display footing breakdown when no footings exist', () => {
+    render(<SummaryTab building={mockBuilding} />)
+
+    expect(screen.queryByText('Footing Breakdown')).not.toBeInTheDocument()
   })
 })

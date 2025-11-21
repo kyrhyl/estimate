@@ -166,10 +166,10 @@ export default function SlabAssignmentTab({
           <div className="overflow-x-auto">
             <div className="inline-block min-w-full">
               {/* Column headers */}
-              <div className="flex mb-2">
+              <div className="flex gap-3 mb-4">
                 <div className="w-12"></div> {/* Empty corner */}
                 {cols.map(col => (
-                  <div key={col.label} className="w-16 h-8 flex items-center justify-center bg-blue-100 border border-blue-200 rounded text-sm font-medium text-blue-800">
+                  <div key={col.label} className="w-12 h-8 flex items-center justify-center bg-blue-100 border border-blue-200 rounded text-xs font-medium text-blue-800">
                     {col.label}
                   </div>
                 ))}
@@ -177,9 +177,9 @@ export default function SlabAssignmentTab({
 
               {/* Grid rows */}
               {rows.map(row => (
-                <div key={row.label} className="flex mb-2">
+                <div key={row.label} className="flex items-center gap-3 mb-4">
                   {/* Row header */}
-                  <div className="w-12 h-16 flex items-center justify-center bg-green-100 border border-green-200 rounded text-sm font-medium text-green-800 mr-2">
+                  <div className="w-12 h-12 flex items-center justify-center bg-green-100 border border-green-200 rounded text-xs font-medium text-green-800">
                     {row.label}
                   </div>
 
@@ -195,7 +195,7 @@ export default function SlabAssignmentTab({
                         onClick={() => handleCellClick(cellKey)}
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, cellKey)}
-                        className={`w-16 h-16 border-2 flex items-center justify-center text-xs font-medium transition-all duration-200 ${
+                        className={`w-12 h-12 border-2 flex items-center justify-center text-xs font-medium transition-all duration-200 ${
                           slabSpecId
                             ? `bg-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-100 border-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-300 text-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-800 hover:bg-${slabSpec?.type === 'two-way' ? 'purple' : 'blue'}-200 cursor-pointer`
                             : 'bg-gray-50 border-gray-200 border-dashed text-gray-400 hover:bg-gray-100 hover:border-gray-300'

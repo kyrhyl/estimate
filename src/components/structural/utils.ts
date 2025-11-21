@@ -1,4 +1,4 @@
-import { BeamSpec, ColumnSpec, Building, BuildingSummary, SlabSpec } from './types';
+import { BeamSpec, ColumnSpec, Building, BuildingSummary, SlabSpec, FootingSpec, FootingAssignment } from './types';
 
 // Standard reinforcement bar sizes
 export const BAR_SIZES = [8, 10, 12, 16, 20, 25, 32];
@@ -326,11 +326,50 @@ export const calculateBuildingSummary = (building: Building): BuildingSummary =>
     });
   });
   
+  // Calculate footing breakdown
+  const footingBreakdown: BuildingSummary['footingBreakdown'] = [];
+  if (building.footingAssignments && building.footingSpecs) {
+    const footingSummaryMap = new Map();
+    building.footingAssignments.forEach((assignment) => {
+      if (!footingSummaryMap.has(assignment.footingSpecId)) {
+        footingSummaryMap.set(assignment.footingSpecId, { locations: [], count: 0 });
+      }
+      const summary = footingSummaryMap.get(assignment.footingSpecId);
+      summary.locations.push(assignment.gridPosition);
+      summary.count += 1;
+    });
+
+    footingSummaryMap.forEach((summary, footingId) => {
+      const footing = building.footingSpecs!.find(f => f.id === footingId);
+      if (footing) {
+        const singleFootingConcreteVolume = calculateFootingConcreteVolume(footing);
+        const weights = calculateFootingReinforcementWeights(footing);
+        const totalFootingConcreteVolume = singleFootingConcreteVolume * summary.count;
+        const footingGrade40Steel = weights.grade40Weight * summary.count;
+        const footingGrade60Steel = weights.grade60Weight * summary.count;
+
+        totalConcreteVolume += totalFootingConcreteVolume;
+        totalGrade40Steel += footingGrade40Steel;
+        totalGrade60Steel += footingGrade60Steel;
+
+        footingBreakdown.push({
+          footingId,
+          locations: summary.locations,
+          count: summary.count,
+          concreteVolume: totalFootingConcreteVolume,
+          grade40Steel: footingGrade40Steel,
+          grade60Steel: footingGrade60Steel,
+        });
+      }
+    });
+  }
+
   return {
     totalConcreteVolume,
     totalGrade40Steel,
     totalGrade60Steel,
     floorBreakdown,
+    footingBreakdown,
   };
 };
 
@@ -678,4 +717,82 @@ export const validateGridSystem = (rows: GridLine[], cols: GridLine[]): { isVali
     isValid: errors.length === 0,
     errors
   };
+};
+export const calculateFootingReinforcementWeights = (footing: FootingSpec): { grade40Weight: number; grade60Weight: number; totalWeight: number } => {
+  let grade40Weight = 0; // < 16mm
+  let grade60Weight = 0; // >= 16mm
+
+  // Main reinforcement (bottom layer - both directions)
+  if (footing.mainBarSize && footing.mainBarSpacing > 0) {
+    // Calculate total bar length for one footing
+    const barsInX = Math.ceil(footing.length / (footing.mainBarSpacing / 1000)); // number of bars in X direction
+    const barsInY = Math.ceil(footing.width / (footing.mainBarSpacing / 1000)); // number of bars in Y direction
+    const totalLengthX = barsInX * footing.width; // total length of bars in X direction
+    const totalLengthY = barsInY * footing.length; // total length of bars in Y direction
+    const totalBarLength = totalLengthX + totalLengthY;
+    const weight = BAR_WEIGHTS[footing.mainBarSize] * totalBarLength;
+
+    if (footing.mainBarSize < 16) {
+      grade40Weight += weight;
+    } else {
+      grade60Weight += weight;
+    }
+  }
+
+  // Distribution bars (top layer - both directions, if not using explicit top bars)
+  if (footing.distributionBarSize && footing.distributionBarSpacing > 0) {
+    const barsInX = Math.ceil(footing.length / (footing.distributionBarSpacing / 1000));
+    const barsInY = Math.ceil(footing.width / (footing.distributionBarSpacing / 1000));
+    const totalLengthX = barsInX * footing.width;
+    const totalLengthY = barsInY * footing.length;
+    const totalBarLength = totalLengthX + totalLengthY;
+    const weight = BAR_WEIGHTS[footing.distributionBarSize] * totalBarLength;
+
+    if (footing.distributionBarSize < 16) {
+      grade40Weight += weight;
+    } else {
+      grade60Weight += weight;
+    }
+  }
+
+  // Top bars (additional top reinforcement if required)
+  if (footing.topBarsRequired && footing.topBarSize && footing.topBarSpacing && footing.topBarSpacing > 0) {
+    const barsInX = Math.ceil(footing.length / (footing.topBarSpacing / 1000));
+    const barsInY = Math.ceil(footing.width / (footing.topBarSpacing / 1000));
+    const totalLengthX = barsInX * footing.width;
+    const totalLengthY = barsInY * footing.length;
+    const totalBarLength = totalLengthX + totalLengthY;
+    const weight = BAR_WEIGHTS[footing.topBarSize] * totalBarLength;
+
+    if (footing.topBarSize < 16) {
+      grade40Weight += weight;
+    } else {
+      grade60Weight += weight;
+    }
+  }
+
+  // Stirrups - perimeter calculation
+  if (footing.stirrupSize && footing.stirrupSpacing > 0) {
+    const perimeter = 2 * (footing.width + footing.length); // footing perimeter in meters
+    const numberOfStirrups = Math.ceil(footing.depth / footing.stirrupSpacing);
+    const stirrupLength = perimeter * numberOfStirrups; // total stirrup length
+    const weight = BAR_WEIGHTS[footing.stirrupSize] * stirrupLength;
+
+    if (footing.stirrupSize < 16) {
+      grade40Weight += weight;
+    } else {
+      grade60Weight += weight;
+    }
+  }
+
+  return {
+    grade40Weight: Math.round(grade40Weight * 100) / 100,
+    grade60Weight: Math.round(grade60Weight * 100) / 100,
+    totalWeight: Math.round((grade40Weight + grade60Weight) * 100) / 100
+  };
+};
+
+// Calculate concrete volume for a footing
+export const calculateFootingConcreteVolume = (footing: FootingSpec): number => {
+  return footing.width * footing.length * footing.depth;
 };

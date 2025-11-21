@@ -55,6 +55,31 @@ export type SlabAssignment = {
   area: number; // calculated area in m²
 };
 
+// FootingSpec type definition
+export type FootingSpec = {
+  id: string;
+  type: 'isolated' | 'combined' | 'strip' | 'raft';
+  width: number;        // footing width (m)
+  length: number;       // footing length (m)
+  depth: number;        // footing thickness (m)
+  mainBarSize: number;
+  mainBarSpacing: number; // spacing in mm
+  distributionBarSize: number;
+  distributionBarSpacing: number; // spacing in mm
+  stirrupSize: number;
+  stirrupSpacing: number; // spacing in meters
+  topBarsRequired: boolean; // whether top reinforcement is required
+  topBarSize?: number;      // size of top bars (if required)
+  topBarSpacing?: number;   // spacing of top bars in mm (if required)
+};
+
+// FootingAssignment type definition
+export type FootingAssignment = {
+  footingSpecId: string;
+  gridPosition: string;  // e.g., "A1", "B2"
+  orientation?: 'X' | 'Y'; // for strip footings
+};
+
 // Multi-floor data structures
 export type StructuralSystem = {
   numCols: number;
@@ -82,6 +107,8 @@ export type Building = {
   id: string;
   name: string;
   floors: Floor[];
+  footingSpecs: FootingSpec[];
+  footingAssignments: FootingAssignment[];
 };
 
 export type BuildingSummary = {
@@ -118,6 +145,14 @@ export type BuildingSummary = {
       grade40Steel: number;
       grade60Steel: number;
     }[];
+  }[];
+  footingBreakdown: {
+    footingId: string;
+    locations: string[];
+    count: number;
+    concreteVolume: number;
+    grade40Steel: number;
+    grade60Steel: number;
   }[];
 };
 

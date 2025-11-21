@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Building, Floor, BeamSpec, ColumnSpec, SlabSpec, SlabAssignment } from './types';
+import { Building, Floor, BeamSpec, ColumnSpec, SlabSpec, SlabAssignment, FootingSpec, FootingAssignment } from './types';
 import { defaultBuilding } from './defaultData';
 
 export const useBuildingState = () => {
@@ -80,6 +80,20 @@ export const useBuildingState = () => {
     updateCurrentFloor({ slabAssignments: newAssignments });
   }, [updateCurrentFloor]);
 
+  const setFootingSpecs = useCallback((newSpecs: FootingSpec[]) => {
+    setBuilding((prev: Building) => ({
+      ...prev,
+      footingSpecs: newSpecs,
+    }));
+  }, []);
+
+  const setFootingAssignments = useCallback((newAssignments: FootingAssignment[]) => {
+    setBuilding((prev: Building) => ({
+      ...prev,
+      footingAssignments: newAssignments,
+    }));
+  }, []);
+
   const setColBeamIds = useCallback((newIds: string[]) => {
     updateCurrentFloor({ colBeamIds: newIds });
   }, [updateCurrentFloor]);
@@ -124,6 +138,8 @@ export const useBuildingState = () => {
     setColumnSpecs,
     setSlabSpecs,
     setSlabAssignments,
+    setFootingSpecs,
+    setFootingAssignments,
     setColBeamIds,
     setRowBeamIds,
     setColumnIds,

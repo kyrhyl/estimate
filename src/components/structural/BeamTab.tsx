@@ -39,6 +39,7 @@ export default function BeamTab({ beamSpecs, setBeamSpecs }: BeamTabProps) {
                     }}
                     className="text-xl font-semibold bg-transparent border-b border-blue-300 border-opacity-50 text-white placeholder-blue-200 focus:outline-none focus:border-white w-full"
                     placeholder="Beam Name"
+                    suppressHydrationWarning={true}
                   />
                   <p className="text-blue-100 text-sm mt-1">Beam Configuration</p>
                 </div>
@@ -49,6 +50,7 @@ export default function BeamTab({ beamSpecs, setBeamSpecs }: BeamTabProps) {
                   }}
                   className="ml-4 p-2 hover:bg-red-600 rounded-md transition-colors duration-200 group"
                   title="Delete Beam"
+                  suppressHydrationWarning={true}
                 >
                   <svg className="w-4 h-4 text-red-200 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -78,6 +80,7 @@ export default function BeamTab({ beamSpecs, setBeamSpecs }: BeamTabProps) {
                         setBeamSpecs(newSpecs);
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      suppressHydrationWarning={true}
                     />
                   </div>
                   <div>
@@ -93,6 +96,7 @@ export default function BeamTab({ beamSpecs, setBeamSpecs }: BeamTabProps) {
                         setBeamSpecs(newSpecs);
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      suppressHydrationWarning={true}
                     />
                   </div>
                 </div>
@@ -123,6 +127,7 @@ export default function BeamTab({ beamSpecs, setBeamSpecs }: BeamTabProps) {
                             setBeamSpecs(newSpecs);
                           }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          suppressHydrationWarning={true}
                         >
                           <option value="">-</option>
                           {BAR_SIZES.map(size => (
@@ -143,6 +148,7 @@ export default function BeamTab({ beamSpecs, setBeamSpecs }: BeamTabProps) {
                             setBeamSpecs(newSpecs);
                           }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          suppressHydrationWarning={true}
                         />
                       </div>
                     </div>
@@ -195,6 +201,7 @@ export default function BeamTab({ beamSpecs, setBeamSpecs }: BeamTabProps) {
             }]);
           }}
           className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          suppressHydrationWarning={true}
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

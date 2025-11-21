@@ -190,6 +190,49 @@ export default function SummaryTab({ building }: SummaryTabProps) {
             </div>
           ))}
         </div>
+
+        {/* Footing Breakdown */}
+        {summary.footingBreakdown.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4">
+              <h3 className="text-xl font-semibold text-white">Footing Breakdown</h3>
+            </div>
+            <div className="p-6">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-2 font-medium text-gray-900">Footing ID</th>
+                      <th className="text-center py-3 px-2 font-medium text-gray-900">Locations</th>
+                      <th className="text-center py-3 px-2 font-medium text-gray-900">Count</th>
+                      <th className="text-center py-3 px-2 font-medium text-gray-900">Concrete (m³)</th>
+                      <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 40 (kg)</th>
+                      <th className="text-center py-3 px-2 font-medium text-gray-900">Grade 60 (kg)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.footingBreakdown.map((footing) => (
+                      <tr key={footing.footingId} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-2 font-medium text-green-600">{footing.footingId}</td>
+                        <td className="py-3 px-2 text-center text-sm text-gray-600">
+                          {footing.locations.join(', ')}
+                        </td>
+                        <td className="py-3 px-2 text-center font-mono">{footing.count}</td>
+                        <td className="py-3 px-2 text-center font-mono">{footing.concreteVolume.toFixed(2)}</td>
+                        <td className="py-3 px-2 text-center font-mono text-orange-600">
+                          {footing.grade40Steel.toFixed(1)}
+                        </td>
+                        <td className="py-3 px-2 text-center font-mono text-red-600">
+                          {footing.grade60Steel.toFixed(1)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
